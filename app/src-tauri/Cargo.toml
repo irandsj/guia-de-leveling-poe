@@ -1,6 +1,6 @@
 [package]
 name = "guia-leveling"
-version = "0.1.0"
+version = "0.1.1"
 description = "Guia de leveling em overlay para Path of Exile 1"
 edition = "2021"
 publish = false

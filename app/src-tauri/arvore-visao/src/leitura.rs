@@ -28,6 +28,10 @@ const EFEITO_MAESTRIA: &[f64] = &[82.0, 88.0, 96.0];
 const L_ALOCADO: f64 = 128.0;
 /// Quão alaranjada a faixa pode ser e ainda contar como alocada: (R - B) / brilho (protótipo: `COR_MAX`).
 const COR_MAX: f64 = 0.42;
+/// O mesmo pra keystone: a moldura dela alocada é dourada clara, (R - B) / brilho de 0,50 a 0,55
+/// (num print do jogo, 2 de 2). O laranja do destaque da busca dá 0,71 ou mais, e a faixa de uma
+/// keystone livre não passa de 77 de brilho.
+const COR_MAX_CHAVE: f64 = 0.65;
 /// Abaixo deste brilho a faixa é de um nó livre (protótipo: `L_LIVRE`).
 const L_LIVRE: f64 = 112.0;
 /// Quanto a faixa alocada tem de ser mais clara que o fundo (protótipo: `CONTRASTE`).
@@ -131,11 +135,11 @@ pub(crate) fn ler(foto: &Foto, arvore: &Arvore, encaixe: &Encaixe, tapumes: &[Ta
             *estado = Leitura::Tapado;
             continue;
         }
-        let (faixa, moldura) = match *tipo {
-            NORMAL => (FAIXA_NORMAL, MOLDURA_NORMAL),
-            NOTAVEL => (FAIXA_NOTAVEL, MOLDURA_NOTAVEL),
-            CHAVE => (FAIXA_CHAVE, MOLDURA_CHAVE),
-            JOIA => (FAIXA_JOIA, MOLDURA_JOIA),
+        let (faixa, moldura, cor_max) = match *tipo {
+            NORMAL => (FAIXA_NORMAL, MOLDURA_NORMAL, COR_MAX),
+            NOTAVEL => (FAIXA_NOTAVEL, MOLDURA_NOTAVEL, COR_MAX),
+            CHAVE => (FAIXA_CHAVE, MOLDURA_CHAVE, COR_MAX_CHAVE),
+            JOIA => (FAIXA_JOIA, MOLDURA_JOIA, COR_MAX),
             MAESTRIA => {
                 // Escolhida: ícone aceso E efeito forte em volta. Só o ícone aceso é "dá pra
                 // escolher" (antes isso contava como escolhida e o guia pulava a maestria).
@@ -156,10 +160,10 @@ pub(crate) fn ler(foto: &Foto, arvore: &Arvore, encaixe: &Encaixe, tapumes: &[Ta
         let fundo = brilho_mediano(&anel_rgb(&tela, &dir, qx, qy, s, &[rf]));
         let (l, cor) = aparada(&anel_rgb(&tela, &dir, qx, qy, s, faixa));
         let c = (cor[0] - cor[2]) / l.max(1.0);
-        let alocado = l >= L_ALOCADO && c <= COR_MAX && l - fundo >= CONTRASTE;
+        let alocado = l >= L_ALOCADO && c <= cor_max && l - fundo >= CONTRASTE;
         *estado = if alocado {
             Leitura::Alocado
-        } else if l < L_LIVRE || c > COR_MAX {
+        } else if l < L_LIVRE || c > cor_max {
             // Só agora a moldura é medida: quase todo nó livre passa por aqui.
             let mold = brilho_mediano(&anel_rgb(&tela, &dir, qx, qy, s, moldura)) - fundo;
             if mold >= MOLD_MIN {

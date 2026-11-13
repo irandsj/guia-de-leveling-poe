@@ -21,7 +21,7 @@ Overlay leve pra campanha do Path of Exile 1 (atos 1 a 10). Você cola o link de
 
 | Arquivo | Tamanho | Pra quê |
 |---|---|---|
-| `src-tauri/target/release/bundle/nsis/Guia de Leveling_0.1.2_x64-setup.exe` | 17 MB | Instalador. Instala só pro seu usuário, sem pedir administrador. |
+| `src-tauri/target/release/bundle/nsis/Guia de Leveling_0.1.3_x64-setup.exe` | 17 MB | Instalador. Instala só pro seu usuário, sem pedir administrador. |
 | `src-tauri/target/release/guia-leveling.exe` | 19 MB | O programa solto. Abre sem instalar. |
 
 Precisa do WebView2, que já vem no Windows 11 e no Windows 10 atualizado.

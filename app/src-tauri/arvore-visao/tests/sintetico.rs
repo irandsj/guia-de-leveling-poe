@@ -455,3 +455,29 @@ fn le_o_no_logo_acima_da_barra_de_xp() {
         assert_eq!(lido[i], esperado, "notável em y = {qy:.1}, faixa até {topo_da_faixa:.1}, barra em {barra:.1}");
     }
 }
+
+/// Keystone pega: a moldura dela no jogo é dourada clara, mais amarelada que a dos outros nós
+/// ((R - B) / brilho perto de 0,53). Tem de contar como pega (antes ficava livre e o guia contava
+/// a partir dela). O laranja do destaque da busca e a moldura apagada de uma livre continuam livres.
+#[test]
+fn keystone_dourada_conta_como_pega() {
+    let arvore = comum::arvore_do_app();
+    let (w, h, n) = (1920usize, 1080usize, 20u32);
+    let s = n as f32 * h as f32 / 80000.0;
+    let i = (0..arvore.ids.len()).find(|i| arvore.tipos[*i] == 2).expect("uma keystone");
+    let (cx, cy) = (w as f32 / 2.0 - s * arvore.xs[i], h as f32 / 2.0 - s * arvore.ys[i]);
+    let (r0, r1) = anel_de(2).unwrap();
+    for (cor, esperado, nome) in [
+        ([200.0, 165.0, 110.0], Leitura::Alocado, "dourada (pega)"),
+        (ALOCADO, Leitura::Alocado, "creme (pega)"),
+        ([157.0, 100.0, 45.0], Leitura::Livre, "laranja da busca"),
+        ([87.0, 70.0, 54.0], Leitura::Livre, "apagada (livre)"),
+    ] {
+        // Nada alocado no desenho; só a keystone ganha a cor do caso.
+        let mut cena = desenhar(&arvore, w, h, n, cx, cy, (0.0, 0.0, 0.0));
+        pintar(&mut cena.bgrx, w, h, w as f32 / 2.0, h as f32 / 2.0, r0 * s, r1 * s, cor);
+        let mut lido = Vec::new();
+        ler(&cena.foto(), &arvore, &cena.encaixe, &[], &mut lido);
+        assert_eq!(lido[i], esperado, "keystone {} {nome}", arvore.ids[i]);
+    }
+}

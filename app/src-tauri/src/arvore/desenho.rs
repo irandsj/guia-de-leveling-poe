@@ -58,10 +58,23 @@ const MEIA_FAIXA_DA_SITUACAO: f32 = 0.34;
 /// quem mede de verdade é `janela`; aqui só se reserva o lugar da caixa de situação).
 const LARGURA_DA_LETRA: f32 = 0.6;
 /// Menor letra de número ao lado do anel, em pontos (menos que isso não se lê).
-const MENOR_LETRA_DE_NUMERO: f32 = 10.0;
+const MENOR_LETRA_DE_NUMERO: f32 = 9.0;
+/// Maior letra de número ao lado do anel, como fração da altura da tela (1080: 12 pontos). Era
+/// 0,016: o número ficava grande demais em cima dos nós vizinhos.
+const LETRA_DO_NUMERO: f32 = 0.011;
 /// Altura da letra do número como fração do raio do anel: no zoom baixo os nós ficam encostados,
 /// e uma caixa de tamanho fixo taparia os vizinhos.
-const LETRA_POR_RAIO: f32 = 1.2;
+const LETRA_POR_RAIO: f32 = 1.0;
+/// Letra do efeito da maestria, como fração da altura da tela (1080: 12 pontos), e o piso dela.
+const LETRA_DO_ROTULO: f32 = 0.011;
+const MENOR_LETRA_DO_ROTULO: f32 = 10.0;
+/// Altura de uma linha de texto, como fração da altura da letra (Segoe UI: ~1,33). Estimativa,
+/// como `LARGURA_DA_LETRA`: só serve pra saber onde a caixa do efeito vai ficar.
+const ALTURA_DA_LINHA: f32 = 1.35;
+/// Folga em volta da caixa do efeito da maestria em que uma dica do jogo já tira a caixa, como
+/// fração da altura da tela. A dica abre logo ao lado do nó: o cabeçalho dela (~0,045 da altura,
+/// que não é preto) pode ficar debaixo da caixa, com o corpo logo abaixo.
+const FOLGA_DA_DICA: f32 = 0.06;
 
 /// Uma forma pra riscar, em pontos do buffer (x pra direita, y pra baixo).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -398,6 +411,9 @@ pub struct Entrada<'a> {
     pub faltam: u32,
     /// Nós alocados que a build não quer mais.
     pub devolver: &'a [Lugar],
+    /// Há uma dica do jogo aberta neste retângulo da tela, (x0, y0, x1, y1)? É a janelinha de um
+    /// nó com o mouse em cima ou a lista de efeitos de uma maestria clicada.
+    pub dica_do_jogo: &'a dyn Fn((f32, f32, f32, f32)) -> bool,
 }
 
 /// Monta o que se desenha (desenho do sistema, seção 5.3). `proibido` diz se um ponto da tela
@@ -416,6 +432,8 @@ pub fn montar_cena(e: &Entrada, proibido: &dyn Fn(f32, f32) -> bool) -> Cena {
     let normal = (e.altura / 480.0).max(2.0);
     let grosso = (e.altura / 360.0).max(3.0);
     let letra = (e.altura * 0.016).max(13.0);
+    let maior_numero = (e.altura * LETRA_DO_NUMERO).max(MENOR_LETRA_DE_NUMERO);
+    let letra_do_rotulo = (e.altura * LETRA_DO_ROTULO).max(MENOR_LETRA_DO_ROTULO);
 
     let cabe = |lugar: &Lugar| -> bool {
         lugar.x.is_finite() && lugar.y.is_finite() && lugar.x >= 0.0 && lugar.y >= 0.0 && lugar.x < e.largura && lugar.y < e.altura
@@ -505,7 +523,7 @@ pub fn montar_cena(e: &Entrada, proibido: &dyn Fn(f32, f32) -> bool) -> Cena {
         let canto = (lugar.raio + espessura) * std::f32::consts::FRAC_1_SQRT_2 + 2.0;
         // A letra do número acompanha o anel (que acompanha o zoom), até o tamanho normal. Depois
         // do nº 1 o número é menor e mais apagado, como o anel.
-        let letra_do_numero = (lugar.raio * LETRA_POR_RAIO).max(MENOR_LETRA_DE_NUMERO).min(letra);
+        let letra_do_numero = (lugar.raio * LETRA_POR_RAIO).max(MENOR_LETRA_DE_NUMERO).min(maior_numero);
         let (letra_do_numero, cor, fundo) = if ordem == 0 {
             (letra_do_numero, BRANCO, FUNDO)
         } else {
@@ -524,16 +542,30 @@ pub fn montar_cena(e: &Entrada, proibido: &dyn Fn(f32, f32) -> bool) -> Cena {
         let rotulo = e.guia.ordem.get(passo).and_then(|dados| dados.rotulo.as_deref()).map(str::trim).unwrap_or("");
         if lugar.maestria && !rotulo.is_empty() && !efeito_posto {
             efeito_posto = true;
-            cena.textos.push(Texto {
-                x: lugar.x + canto,
-                y: lugar.y + canto,
-                ancora_x: 0.0,
-                ancora_y: 0.0,
-                texto: quebrar(rotulo, COLUNAS_DO_ROTULO),
-                altura: letra,
-                cor: BRANCO,
-                fundo: FUNDO,
-            });
+            let texto = quebrar(rotulo, COLUNAS_DO_ROTULO);
+            let (x, y) = (lugar.x + canto, lugar.y + canto);
+            // Onde a caixa vai ficar (quem mede de verdade é `janela`), com a folga em volta.
+            let linhas = texto.lines().count().max(1) as f32;
+            let colunas = texto.lines().map(|linha| linha.chars().count()).max().unwrap_or(0) as f32;
+            let margens = 0.7 * letra_do_rotulo;
+            let largura = colunas * LARGURA_DA_LETRA * letra_do_rotulo + margens;
+            let altura = linhas * ALTURA_DA_LINHA * letra_do_rotulo + margens;
+            let folga = e.altura * FOLGA_DA_DICA;
+            // Dica do jogo aberta ali (o mouse na maestria, ou a lista de efeitos pra clicar): a
+            // caixa sai pra não tapar as opções e volta quando a dica fechar.
+            let com_dica = (e.dica_do_jogo)((x - folga, y - folga, x + largura + folga, y + altura + folga));
+            if !com_dica {
+                cena.textos.push(Texto {
+                    x,
+                    y,
+                    ancora_x: 0.0,
+                    ancora_y: 0.0,
+                    texto,
+                    altura: letra_do_rotulo,
+                    cor: BRANCO,
+                    fundo: FUNDO,
+                });
+            }
         }
     }
 
@@ -857,6 +889,10 @@ mod testes {
             .collect()
     }
 
+    fn sem_dica(_: (f32, f32, f32, f32)) -> bool {
+        false
+    }
+
     fn nada_proibido(_: f32, _: f32) -> bool {
         false
     }
@@ -877,6 +913,7 @@ mod testes {
             proximos: &[1, 2],
             faltam: 4,
             devolver: &[lugar(900.0, 900.0), Lugar { tapado: true, ..lugar(950.0, 900.0) }],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
 
@@ -945,6 +982,7 @@ mod testes {
             proximos: &[0, 1],
             faltam: 5,
             devolver: &[lugar(1400.0, 900.0)],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
         let raios = raios_de_dentro(&cena);
@@ -956,8 +994,8 @@ mod testes {
     fn letra_do_numero_acompanha_o_anel_e_so_uma_maestria_mostra_o_efeito() {
         let mut guia = guia_de_cinco();
         guia.ordem[3].rotulo = Some("outro efeito".into());
-        // Zoom baixo: anéis de 9 pontos de raio, nós a 30 pontos uns dos outros.
-        let pequeno = |x: f32, maestria: bool| Some(Lugar { raio: 9.0, maestria, ..lugar(x, 600.0) });
+        // Zoom baixo: anéis de 11 pontos de raio, nós a 30 pontos uns dos outros.
+        let pequeno = |x: f32, maestria: bool| Some(Lugar { raio: 11.0, maestria, ..lugar(x, 600.0) });
         let lugares = [pequeno(400.0, false), pequeno(430.0, false), pequeno(460.0, true), pequeno(490.0, true), None];
         let entrada = Entrada {
             largura: 2560.0,
@@ -969,30 +1007,83 @@ mod testes {
             proximos: &[0, 1, 2, 3],
             faltam: 5,
             devolver: &[],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
         let numeros: Vec<&Texto> = cena.textos.iter().filter(|t| t.texto.parse::<u32>().is_ok()).collect();
         assert_eq!(numeros.len(), 4);
-        // 9 × 1,2 = 10,8 pontos, e não os 23 da letra normal em 1440p. Os de depois do nº 1 são
-        // 15% menores, mas nunca abaixo do piso.
+        // 11 × 1,0 = 11 pontos, e não os 15,8 do teto em 1440p. Os de depois do nº 1 são 15%
+        // menores (9,35), mas nunca abaixo do piso.
         let alturas: Vec<f32> = numeros.iter().map(|t| t.altura).collect();
-        assert!((alturas[0] - 10.8).abs() < 0.01, "{alturas:?}");
-        assert!(alturas[1..].iter().all(|a| *a == MENOR_LETRA_DE_NUMERO), "{alturas:?}");
-        // Duas maestrias numeradas: só o efeito da primeira.
-        let efeitos: Vec<&str> = cena.textos.iter().filter(|t| t.texto.parse::<u32>().is_err()).map(|t| t.texto.as_str()).collect();
-        assert_eq!(efeitos, vec!["+50 to maximum Life"]);
+        assert!((alturas[0] - 11.0).abs() < 0.01, "{alturas:?}");
+        assert!(alturas[1..].iter().all(|a| (a - 9.35).abs() < 0.01), "{alturas:?}");
+        // Duas maestrias numeradas: só o efeito da primeira, na letra dele (0,011 da altura).
+        let efeitos: Vec<&Texto> = cena.textos.iter().filter(|t| t.texto.parse::<u32>().is_err()).collect();
+        assert_eq!(efeitos.iter().map(|t| t.texto.as_str()).collect::<Vec<_>>(), vec!["+50 to maximum Life"]);
+        assert!((efeitos[0].altura - 1440.0 * LETRA_DO_ROTULO).abs() < 0.01);
+        // Tela baixa: a letra do efeito para no piso.
+        let baixa = montar_cena(&Entrada { altura: 720.0, ..entrada }, &nada_proibido);
+        let efeito = baixa.textos.iter().find(|t| t.texto.parse::<u32>().is_err()).unwrap();
+        assert_eq!(efeito.altura, MENOR_LETRA_DO_ROTULO);
 
-        // Anel minúsculo: a letra para no piso. Anel grande: para no tamanho normal (0,016 da altura).
+        // Anel minúsculo: a letra para no piso. Anel grande: para no teto (0,011 da altura).
         let minusculo = [Some(Lugar { raio: 2.0, ..lugar(400.0, 600.0) }), None, None, None, None];
         let cena = montar_cena(&Entrada { lugares: &minusculo, proximos: &[0], ..entrada }, &nada_proibido);
         assert_eq!(cena.textos[0].altura, MENOR_LETRA_DE_NUMERO);
         let grande = [Some(Lugar { raio: 80.0, ..lugar(400.0, 600.0) }), None, None, None, None];
         let cena = montar_cena(&Entrada { lugares: &grande, proximos: &[0], ..entrada }, &nada_proibido);
-        assert!((cena.textos[0].altura - 1440.0 * 0.016).abs() < 0.01);
+        assert!((cena.textos[0].altura - 1440.0 * LETRA_DO_NUMERO).abs() < 0.01);
         // Raio que não é número não estoura (e a letra cai no piso).
         let torto = [Some(Lugar { raio: f32::NAN, ..lugar(400.0, 600.0) }), None, None, None, None];
         let cena = montar_cena(&Entrada { lugares: &torto, proximos: &[0], ..entrada }, &nada_proibido);
         assert_eq!(cena.textos[0].altura, MENOR_LETRA_DE_NUMERO);
+    }
+
+    #[test]
+    fn dica_do_jogo_em_volta_tira_so_o_efeito_da_maestria() {
+        let guia = guia_de_cinco();
+        let maestria = Lugar { maestria: true, ..lugar(1000.0, 600.0) };
+        // Passo 2 é a maestria (o único com efeito); numerados: o 1 e o 2.
+        let lugares = [None, Some(lugar(900.0, 600.0)), Some(maestria), None, None];
+        let perguntas = std::cell::RefCell::new(Vec::new());
+        let anotar = |retangulo: (f32, f32, f32, f32)| {
+            perguntas.borrow_mut().push(retangulo);
+            false
+        };
+        let entrada = Entrada {
+            largura: 1920.0,
+            altura: 1080.0,
+            guia: &guia,
+            lugares: &lugares,
+            inicio: None,
+            feito: &[false; 5],
+            proximos: &[1, 2],
+            faltam: 5,
+            devolver: &[],
+            dica_do_jogo: &anotar,
+        };
+        // Sem dica: os dois números e o efeito. A pergunta foi sobre a caixa do efeito, com folga:
+        // começa antes do canto dela e passa do fim do texto.
+        let sem = montar_cena(&entrada, &nada_proibido);
+        let efeito = sem.textos.iter().find(|t| t.texto == "+50 to maximum Life").expect("efeito").clone();
+        assert_eq!(sem.textos.len(), 3);
+        let feitas = perguntas.borrow().clone();
+        assert_eq!(feitas.len(), 1, "uma pergunta só, pela maestria");
+        let (x0, y0, x1, y1) = feitas[0];
+        let folga = 1080.0 * FOLGA_DA_DICA;
+        assert!((x0 - (efeito.x - folga)).abs() < 0.01 && (y0 - (efeito.y - folga)).abs() < 0.01, "{feitas:?}");
+        let largura_do_texto = efeito.texto.chars().count() as f32 * LARGURA_DA_LETRA * efeito.altura;
+        assert!(x1 > efeito.x + largura_do_texto + folga && y1 > efeito.y + efeito.altura + folga, "{feitas:?}");
+
+        // Com a dica aberta ali: o efeito sai, os números e os anéis ficam iguais.
+        let com = montar_cena(&Entrada { dica_do_jogo: &|_| true, ..entrada }, &nada_proibido);
+        assert!(com.textos.iter().all(|t| t.texto.parse::<u32>().is_ok()), "{:?}", com.textos);
+        assert_eq!(com.textos.len(), 2);
+        assert_eq!(com.formas, sem.formas);
+        // Dica que não chega na caixa (a pergunta é só sobre o retângulo dela): o efeito fica.
+        let longe = |(x0, _, _, _): (f32, f32, f32, f32)| x0 > 1500.0;
+        let fica = montar_cena(&Entrada { dica_do_jogo: &longe, ..entrada }, &nada_proibido);
+        assert_eq!(fica, sem);
     }
 
     #[test]
@@ -1014,6 +1105,7 @@ mod testes {
                     proximos: &[0],
                     faltam: 5,
                     devolver: &[],
+                    dica_do_jogo: &sem_dica,
                 };
                 let cena = montar_cena(&entrada, &topo);
                 let seta = cena.formas.iter().find_map(|f| match *f {
@@ -1051,6 +1143,7 @@ mod testes {
             proximos: &[0],
             faltam: 5,
             devolver: &[],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
         assert!(cena.formas.iter().any(|f| matches!(*f, Forma::Linha { y0, y1, .. } if y0 == 220.0 && y1 == 380.0)));
@@ -1079,6 +1172,7 @@ mod testes {
             proximos: &[0, 2],
             faltam: 5,
             devolver: &[],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
         assert!(cena.formas.is_empty(), "{:?}", cena.formas);
@@ -1101,6 +1195,7 @@ mod testes {
             proximos: &[0],
             faltam: 5,
             devolver: &[],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
         let seta = cena.formas.iter().find_map(|f| match *f {
@@ -1141,6 +1236,7 @@ mod testes {
             proximos: &[],
             faltam: 0,
             devolver: &[],
+            dica_do_jogo: &sem_dica,
         };
         assert_eq!(montar_cena(&entrada, &nada_proibido).situacao.unwrap().texto, "Árvore · completo");
         let so_soltos = Entrada { faltam: 2, ..entrada };
@@ -1161,6 +1257,7 @@ mod testes {
             proximos: &[0, 99, 4, u32::MAX],
             faltam: 9,
             devolver: &[],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
         assert_eq!(aneis(&cena, VERDE).len(), 1);
@@ -1183,6 +1280,7 @@ mod testes {
             proximos: &[1, 2],
             faltam: 4,
             devolver: &[lugar(1919.0, 0.0)],
+            dica_do_jogo: &sem_dica,
         };
         let cena = montar_cena(&entrada, &nada_proibido);
         let mut pontos = buffer();

@@ -8,10 +8,12 @@
 //! que chega e o estado combinado (árvore + guia) que o fio de `laco` consulta. As partes:
 //! - `estado`: memória do que já se leu de cada nó, com votação no tempo (só contas);
 //! - `desenho`: o que riscar e o rasterizador (só contas);
+//! - `dica`: vê na foto a dica do jogo aberta por cima da árvore (só contas);
 //! - `janela`: a janela em camadas e os buffers do Windows;
 //! - `laco`: o fio que tira as fotos e decide quando procurar, seguir e parar.
 
 mod desenho;
+mod dica;
 mod estado;
 mod janela;
 mod laco;

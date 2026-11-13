@@ -106,6 +106,7 @@ mod sistema {
 
     use super::{como_procurar, dormir_em_fatias, espera, tapume_na_foto, ComoProcura};
     use crate::arvore::desenho::{montar_cena, Cena, Entrada, Lugar};
+    use crate::arvore::dica::dica_no_retangulo;
     use crate::arvore::estado::{resumir, Balde, Memoria, Resumo, Roteiro, Sabido};
     use crate::arvore::janela::{atender_recados, Imagem, JanelaDoDesenho};
     use crate::arvore::{combinado_de_agora, versao_de_agora, GuiaRecebido, SituacaoDaArvore};
@@ -808,6 +809,10 @@ mod sistema {
                     .filter(|(id, _)| self.resumo.devolver.contains(id))
                     .filter_map(|(_, posicao)| lugar(*posicao, true))
                     .collect();
+                // A foto cheia ainda é a desta volta, a mesma que acabou de ser lida.
+                let foto = self.cheia.as_ref().map(foto_de);
+                let dica_do_jogo =
+                    |retangulo| foto.as_ref().is_some_and(|foto| dica_no_retangulo(foto, retangulo, &proibido));
                 let entrada = Entrada {
                     largura,
                     altura,
@@ -818,6 +823,7 @@ mod sistema {
                     proximos: &self.resumo.proximos,
                     faltam: self.resumo.total.saturating_sub(self.resumo.feitos),
                     devolver: &devolver,
+                    dica_do_jogo: &dica_do_jogo,
                 };
                 montar_cena(&entrada, &proibido)
             };
@@ -1144,6 +1150,8 @@ mod sistema {
                 };
                 let lugares: Vec<Option<Lugar>> =
                     roteiro.passos.iter().map(|passo| passo.and_then(|posicao| lugar(posicao, true))).collect();
+                let proibido = |x: f32, y: f32| zona_fixa(x, y, l, a, 0.0);
+                let dica_do_jogo = |retangulo| dica_no_retangulo(&foto, retangulo, &proibido);
                 let entrada = Entrada {
                     largura: l,
                     altura: a,
@@ -1154,8 +1162,8 @@ mod sistema {
                     proximos: &resumo.proximos,
                     faltam: resumo.total.saturating_sub(resumo.feitos),
                     devolver: &[],
+                    dica_do_jogo: &dica_do_jogo,
                 };
-                let proibido = |x: f32, y: f32| zona_fixa(x, y, l, a, 0.0);
                 let cena = montar_cena(&entrada, &proibido);
                 let pintado = pintar_na_memoria(largura as i32, altura as i32, &cena, &proibido).unwrap();
                 let rgb: Vec<u8> = q

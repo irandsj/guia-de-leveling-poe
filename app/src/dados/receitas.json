@@ -1,0 +1,171 @@
+{
+  "versao": 3,
+  "aviso": "Todas conferidas: as da 3.30 no texto oficial das patch notes, as outras na página \"Vendor recipe system\" do poedb.tw (12/11/2026). O poedb não tem data de versão na página: se o jogo discordar, vale o jogo.",
+  "como_confirmar": "Se o vendedor não aceitar uma receita, trocar \"verificado\" pra false e corrigir os ingredientes aqui.",
+  "receitas": [
+    {
+      "id": "botas-movimento",
+      "nome": "Botas de movimento",
+      "ingredientes": [
+        "Botas normais (ou mágicas/raras que já têm velocidade de movimento)",
+        "Quicksilver Flask",
+        "Orb of Augmentation"
+      ],
+      "resultado": "Botas mágicas com 10% de velocidade de movimento. Botas que já tinham X% saem com X+5%.",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "poedb.tw, página \"Vendor recipe system\" (conferida em 12/11/2026)",
+      "verificado": true
+    },
+    {
+      "id": "arma-fisica",
+      "nome": "Arma de dano físico",
+      "ingredientes": [
+        "Arma (qualquer raridade)",
+        "Rustic Sash mágico, raro ou único (normal não serve)",
+        "Blacksmith's Whetstone"
+      ],
+      "resultado": "Arma mágica com dano físico aumentado: cinto mágico 40-49% (Heavy), raro 50-69% (Serrated), único 65-84% (Wicked).",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "poedb.tw, página \"Vendor recipe system\" (conferida em 12/11/2026)",
+      "verificado": true
+    },
+    {
+      "id": "arma-elemental",
+      "nome": "Arma de dano elemental",
+      "ingredientes": [
+        "Arma normal (ou mágica/rara que já tem o dano adicionado daquele elemento)",
+        "Orb of Augmentation",
+        "Ruby Flask (fogo), Sapphire Flask (gelo) ou Topaz Flask (raio)"
+      ],
+      "resultado": "Arma mágica com dano de fogo, gelo ou raio adicionado: a normal ganha o mod mais baixo; a que já tinha sobe um nível. Com Granite Flask é dano físico. A versão com anel saiu na 3.21.",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "poedb.tw, página \"Vendor recipe system\" (conferida em 12/11/2026)",
+      "verificado": true
+    },
+    {
+      "id": "arma-mais-um-gemas",
+      "nome": "Arma de +1 nas gemas",
+      "ingredientes": [
+        "Rune Dagger, Sceptre, Staff ou Wand normal (branca)",
+        "2 ou mais gemas com a tag do elemento (fogo, gelo, raio, físico…) somando 40% de qualidade"
+      ],
+      "resultado": "Arma mágica com +1 no nível de todas as gemas de magia daquela tag.",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "poedb.tw, página \"Vendor recipe system\" (conferida em 12/11/2026)",
+      "verificado": true
+    },
+    {
+      "id": "anel-resistencia",
+      "nome": "Anel de resistência",
+      "ingredientes": [
+        "Iron Ring",
+        "Gema vermelha (Ruby Ring), verde (Topaz Ring) ou azul (Sapphire Ring)"
+      ],
+      "resultado": "Ruby Ring (fogo), Topaz Ring (raio) ou Sapphire Ring (gelo). Só esses dois itens, sem orbe.",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "poedb.tw, página \"Vendor recipe system\" (conferida em 12/11/2026)",
+      "verificado": true
+    },
+    {
+      "id": "cromatica",
+      "nome": "Chromatic Orb",
+      "ingredientes": [
+        "Item com um soquete vermelho, um verde e um azul ligados"
+      ],
+      "resultado": "1 Chromatic Orb.",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "poedb.tw, página \"Vendor recipe system\" (conferida em 12/11/2026)",
+      "verificado": true
+    },
+    {
+      "id": "chaos-dois-raros",
+      "nome": "Chaos Orb",
+      "ingredientes": [
+        "2 itens raros com o mesmo nome"
+      ],
+      "resultado": "1 Chaos Orb. A qualidade dos itens não conta mais (3.30).",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "patch notes oficiais da 3.30 (pathofexile.com/forum/view-thread/4013680)",
+      "verificado": true
+    },
+    {
+      "id": "exalted-tres-raros",
+      "nome": "Exalted Orb",
+      "ingredientes": [
+        "3 itens raros com o mesmo nome"
+      ],
+      "resultado": "1 Exalted Orb. A qualidade dos itens não conta mais (3.30).",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "patch notes oficiais da 3.30 (pathofexile.com/forum/view-thread/4013680)",
+      "verificado": true
+    },
+    {
+      "id": "transmutation-por-augmentation",
+      "nome": "Orb of Transmutation",
+      "ingredientes": [
+        "1 Orb of Augmentation (compra no vendedor)"
+      ],
+      "resultado": "1 Orb of Transmutation (antes custava Portal Scrolls).",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "patch notes oficiais da 3.30 (pathofexile.com/forum/view-thread/4013680)",
+      "verificado": true
+    },
+    {
+      "id": "wisdom-por-gold",
+      "nome": "Scroll of Wisdom",
+      "ingredientes": [
+        "15 Gold, em qualquer cidade"
+      ],
+      "resultado": "1 Scroll of Wisdom.",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "patch notes oficiais da 3.30 (pathofexile.com/forum/view-thread/4013680)",
+      "verificado": true
+    },
+    {
+      "id": "chance-quatro-raridades",
+      "nome": "Orb of Chance",
+      "ingredientes": [
+        "Item normal, mágico, raro e único da mesma base"
+      ],
+      "resultado": "1 Orb of Chance (antes eram 5). O Orb of Chance não é mais vendido.",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "patch notes oficiais da 3.30 (pathofexile.com/forum/view-thread/4013680)",
+      "verificado": true
+    },
+    {
+      "id": "scouring-por-fusing",
+      "nome": "Orb of Scouring",
+      "ingredientes": [
+        "4 Orbs of Fusing (compra no vendedor)"
+      ],
+      "resultado": "1 Orb of Scouring (antes custava 4 Orbs of Chance).",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "patch notes oficiais da 3.30 (pathofexile.com/forum/view-thread/4013680)",
+      "verificado": true
+    },
+    {
+      "id": "vaal-cinco-gemas",
+      "nome": "Vaal Orb",
+      "ingredientes": [
+        "5 gemas Vaal (de habilidade)"
+      ],
+      "resultado": "1 Vaal Orb (antes eram 7 gemas e um Sacrifice Fragment).",
+      "ato_minimo": 1,
+      "ato_maximo": 10,
+      "fonte": "patch notes oficiais da 3.30 (pathofexile.com/forum/view-thread/4013680)",
+      "verificado": true
+    }
+  ]
+}

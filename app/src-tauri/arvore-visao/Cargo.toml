@@ -1,0 +1,11 @@
+[package]
+name = "arvore-visao"
+version = "0.1.0"
+description = "Acha a árvore de passivas do Path of Exile numa foto da tela e lê o estado de cada nó"
+edition = "2021"
+publish = false
+
+[dependencies]
+
+[dev-dependencies]
+serde_json = "1"

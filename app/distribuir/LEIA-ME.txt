@@ -1,0 +1,70 @@
+GUIA DE LEVELING pra Path of Exile 1 (versão {versao})
+======================================================
+
+Um balão por cima do jogo que mostra o passo da campanha (atos 1 a 10), as gemas
+pra pegar ou comprar, os itens da build e os próximos pontos da árvore de passivas.
+Ele avança sozinho enquanto você joga.
+
+
+INSTALAR
+--------
+1. Extraia este zip: botão direito nele > "Extrair tudo". Não abra o instalador
+   de dentro do zip.
+2. Dê dois cliques em "Instalar Guia de Leveling.exe".
+3. Se aparecer "O Windows protegeu o computador", clique em "Mais informações" e
+   depois em "Executar assim mesmo". O aviso aparece porque o programa não tem
+   assinatura digital (que é paga).
+4. Siga o instalador. Ele instala só pro seu usuário e não pede administrador.
+
+Pra abrir depois: menu Iniciar > "Guia de Leveling".
+
+
+PRIMEIRA VEZ
+------------
+1. No jogo, em Options > Graphics, ponha "Display Mode" em "Windowed Fullscreen".
+   Em "Fullscreen" o balão não aparece por cima do jogo.
+2. Abra o guia. Segure Alt e clique na engrenagem (⚙) no canto de cima do balão,
+   ou aperte Ctrl+F2. Isso abre o modo de edição.
+3. Em "Build", cole o link da build (pobb.in, poe.ninja, Maxroll, pastebin...) ou
+   o código do Path of Building e clique em "Importar".
+4. Se ele oferecer um filtro de itens da build, clique em "Criar o filtro". Depois,
+   no jogo, escolha esse filtro em Esc > Options > Game > Item Filter (o nome dele
+   aparece no guia). Sem isso, os itens da build não brilham no chão.
+5. Clique em "Pronto". O balão volta a deixar o clique passar pro jogo.
+6. Jogue. O guia troca de passo sozinho quando você entra na zona certa.
+
+Já está no meio da campanha? Ctrl+F2 > "Corrida" > "Ir pro ato".
+
+
+TECLAS
+------
+Ctrl+F2   abre e fecha o modo de edição (arrastar, mudar o tamanho, opções)
+F2        esconde e mostra o guia
+F3 / F4   volta / avança um passo
+F6        layout da zona
+F7        acha o passo pela zona em que você está
+Ctrl+F3   tamanho do balão (bolinha, normal, expandido)
+
+Jogando, pra clicar em alguma coisa do balão, segure Alt.
+Pra fechar o guia: ícone dele perto do relógio do Windows > "Sair".
+
+
+BOM SABER
+---------
+- Funciona melhor com o jogo em inglês. Em outro idioma ele só percebe a troca de
+  zona: o nível e as mortes não.
+- Precisa do Windows 10 ou 11. Se faltar o WebView2 (peça do Windows), o
+  instalador baixa sozinho, então precisa de internet.
+- O que ele faz com o jogo: lê o arquivo Client.txt e tira fotos da tela do jogo,
+  que ficam só na memória do guia. Não lê a memória do jogo nem mexe nele. A única
+  coisa que ele digita no jogo é a busca da loja: quando você segura Alt e clica
+  num botão roxo de busca, ele cola o texto no campo de busca (igual o Awakened
+  PoE Trade).
+- Internet: só pra baixar a build que você colou e as fotos dos itens (poedb).
+  Nenhum dado seu sai do computador.
+- Seus dados (build, progresso, recordes, opções) ficam em
+  %APPDATA%\br.guialeveling.overlay
+- Pra atualizar: instale a versão nova por cima. Seus dados continuam.
+- Pra desinstalar: Configurações do Windows > Aplicativos > "Guia de Leveling".
+
+Créditos e licenças: LICENCAS.txt.

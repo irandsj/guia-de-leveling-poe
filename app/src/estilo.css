@@ -1,0 +1,1605 @@
+/* A janela é transparente: só o painel aparece por cima do jogo. */
+
+:root {
+  --fundo: rgba(14, 12, 11, 0.86);
+  --borda: rgba(163, 141, 109, 0.55);
+  --risco: rgba(163, 141, 109, 0.28);
+  --texto: #e8e2d6;
+  --fraco: #a89f90;
+  --ouro: #e3be6e;
+  --verde: #7fd18b;
+  --vermelho: #ff8f7a;
+  --azul: #8fb8ff;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--texto);
+}
+
+html,
+body,
+#raiz {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+/* Tudo dentro do painel é medido em `em`, pra opção de tamanho do texto valer pra tudo. */
+.painel {
+  box-sizing: border-box;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0.45em 0.65em 0.55em;
+  font-size: calc(14px * var(--escala, 1));
+  line-height: 1.32;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  overflow-wrap: anywhere;
+}
+
+.painel.editando {
+  height: 100%;
+  background: rgba(14, 12, 11, 0.95);
+  border: 2px dashed var(--ouro);
+}
+
+/* Durante o jogo não dá pra rolar (o clique passa pro jogo): o que não cabe fica de fora. */
+.rolo {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editando .rolo {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.35em;
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda) transparent;
+}
+
+.rolo > * + * {
+  margin-top: 0.38em;
+}
+
+p {
+  margin: 0;
+}
+
+.fraco {
+  color: var(--fraco);
+  font-size: 0.9em;
+}
+
+.aviso {
+  color: #f0c674;
+  font-size: 0.92em;
+}
+
+.erro {
+  color: var(--vermelho);
+  font-size: 0.92em;
+}
+
+.certo {
+  color: var(--verde);
+  font-size: 0.92em;
+}
+
+.vazio {
+  line-height: 1.45;
+}
+
+.selecionavel {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+/* ---------- Cabeçalho do modo de edição ---------- */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-bottom: 0.4em;
+  color: var(--ouro);
+  font-weight: 600;
+  cursor: move;
+}
+
+.acoes {
+  display: flex;
+  gap: 0.3em;
+}
+
+/* ---------- Situação ---------- */
+
+.situacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.75em;
+  color: var(--fraco);
+  font-size: 0.9em;
+}
+
+.situacao .ato {
+  color: var(--ouro);
+  font-weight: 600;
+}
+
+.zona-atual {
+  color: var(--texto);
+}
+
+.relogio {
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.relogio.parado {
+  color: var(--fraco);
+}
+
+.mortes {
+  color: var(--vermelho);
+}
+
+/* Tempo do ato contra o recorde. */
+.no-ritmo {
+  color: var(--verde);
+}
+
+.atrasado {
+  color: var(--vermelho);
+}
+
+/* Experiência na zona. */
+.xp {
+  font-variant-numeric: tabular-nums;
+}
+
+.xp.bom {
+  color: var(--verde);
+}
+
+.xp.meio {
+  color: #f0c674;
+}
+
+.xp.ruim {
+  color: var(--vermelho);
+  font-weight: 600;
+}
+
+/* ---------- Passos ---------- */
+
+.passos {
+  list-style: none;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.passo.atual {
+  padding: 0.3em 0.5em 0.35em;
+  background: rgba(227, 190, 110, 0.11);
+  border-left: 3px solid var(--ouro);
+  border-radius: 0 5px 5px 0;
+}
+
+.passo-texto {
+  font-size: 1.14em;
+  font-weight: 600;
+}
+
+.dica {
+  margin-top: 0.14em;
+  color: #cfc8ba;
+  font-size: 0.9em;
+}
+
+.passo.proximo {
+  padding: 0.16em 0.5em 0 calc(0.5em + 3px);
+  color: #bdb5a6;
+  font-size: 0.93em;
+}
+
+.marca-gema {
+  color: var(--verde);
+  white-space: nowrap;
+}
+
+/* Os pedaços do texto de um passo, pela cor do que são. */
+.p-zona {
+  color: var(--ouro);
+}
+
+.p-cidade {
+  color: #8fd6e8;
+}
+
+.p-inimigo {
+  color: var(--vermelho);
+}
+
+.p-arena {
+  color: #ffb070;
+}
+
+.p-quest {
+  color: #8ed99a;
+}
+
+.p-destaque {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.p-viagem {
+  color: var(--azul);
+}
+
+.p-marco {
+  color: #7fe0d0;
+}
+
+.p-item {
+  color: #d2a8ff;
+}
+
+.p-seta {
+  color: var(--ouro);
+  font-weight: 700;
+}
+
+.p-nivel {
+  color: var(--vermelho);
+  font-size: 0.85em;
+  font-weight: 400;
+}
+
+/* ---------- Gemas ---------- */
+
+.gemas,
+.itens,
+.teclas {
+  list-style: none;
+  margin: 0.15em 0 0;
+  padding: 0;
+}
+
+.gema {
+  font-size: 0.93em;
+}
+
+.gema-nome {
+  font-weight: 600;
+}
+
+.icone-gema {
+  width: 1.3em;
+  height: 1.3em;
+  margin-right: 0.3em;
+  vertical-align: -0.32em;
+  object-fit: contain;
+}
+
+.icone-gema.grande {
+  width: 3em;
+  height: 3em;
+  margin: 0;
+  flex: none;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 0.35em rgba(227, 190, 110, 0.55));
+}
+
+/* ---------- Links pro leveling (PoB só de endgame) ---------- */
+
+.link-leveling {
+  margin-top: 0.15em;
+  padding-left: 0.4em;
+  border-left: 2px solid transparent;
+}
+
+.link-leveling.principal {
+  border-left-color: var(--ouro);
+  font-weight: 600;
+}
+
+.selo-link {
+  display: inline-block;
+  min-width: 1.9em;
+  margin-right: 0.35em;
+  padding: 0 0.25em;
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+  color: var(--ouro);
+  font-size: 0.82em;
+  text-align: center;
+}
+
+.gema-do-link {
+  white-space: nowrap;
+}
+
+/* ---------- Cartão da próxima gema ---------- */
+
+.cartao-gema {
+  margin-top: 0.4em;
+  padding: 0.4em 0.55em;
+  border: 1px solid var(--ouro);
+  border-radius: 6px;
+  background: rgba(227, 190, 110, 0.08);
+}
+
+.cartao-principal {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.cartao-nome {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.cartao-acao {
+  font-weight: 600;
+}
+
+.cartao-acao.recompensa {
+  color: var(--verde);
+}
+
+.cartao-acao.compra {
+  color: var(--azul);
+}
+
+.cartao-custo {
+  color: var(--ouro);
+  font-weight: 600;
+}
+
+.cartao-quando {
+  font-size: 0.92em;
+}
+
+.cartao-quando.agora {
+  color: var(--verde);
+  font-weight: 700;
+}
+
+.ficaram {
+  margin-top: 0.3em;
+  padding-top: 0.25em;
+  border-top: 1px solid var(--risco);
+  font-size: 0.92em;
+}
+
+/* O quadradinho de "comprei/peguei" da gema (o `.marca` é a caixa das opções da edição). */
+.quadrado-gema {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05em;
+  height: 1.05em;
+  margin-right: 0.35em;
+  padding: 0;
+  border: 1px solid var(--fraco);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--verde);
+  font-size: 0.85em;
+  font-weight: bold;
+  line-height: 1;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* No modo de edição o quadrado é clicável: um pouco maior. */
+button.quadrado-gema {
+  width: 1.35em;
+  height: 1.35em;
+  cursor: pointer;
+}
+
+.quadrado-gema.feita {
+  border-color: var(--verde);
+}
+
+.cartao-outras li.feita {
+  opacity: 0.5;
+}
+
+.cartao-outras li.feita .nome-da-gema {
+  text-decoration: line-through;
+}
+
+.cartao-link {
+  color: var(--fraco);
+  font-size: 0.88em;
+  font-style: italic;
+}
+
+.cartao-outras {
+  list-style: none;
+  margin: 0.3em 0 0;
+  padding: 0.25em 0 0;
+  border-top: 1px solid var(--risco);
+  font-size: 0.92em;
+}
+
+.guardar {
+  margin-top: 0.3em;
+  padding-top: 0.25em;
+  border-top: 1px solid var(--risco);
+  color: var(--ouro);
+  font-size: 0.92em;
+}
+
+.cor {
+  display: inline-block;
+  width: 0.62em;
+  height: 0.62em;
+  margin-right: 0.35em;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: 50%;
+}
+
+.cor-strength {
+  background: #ff7b6b;
+}
+
+.cor-dexterity {
+  background: #7fd18b;
+}
+
+.cor-intelligence {
+  background: #7aa8ff;
+}
+
+.cor-none {
+  background: #d8d8d8;
+}
+
+/* ---------- Seções (layout, gemas do ato, conjunto, árvore, itens) ---------- */
+
+.secao {
+  padding-top: 0.32em;
+  border-top: 1px solid var(--risco);
+  font-size: 0.93em;
+}
+
+.titulo {
+  color: var(--ouro);
+  font-weight: 600;
+}
+
+.grupo {
+  margin-top: 0.22em;
+}
+
+.conjunto.trocou {
+  padding: 0.3em 0.5em 0.35em;
+  background: rgba(127, 209, 139, 0.12);
+  border: 1px solid var(--verde);
+  border-radius: 6px;
+}
+
+.conjunto.trocou .titulo {
+  color: var(--verde);
+}
+
+.ligacao {
+  margin-top: 0.12em;
+  padding-left: 0.5em;
+  border-left: 2px solid transparent;
+}
+
+.ligacao.principal {
+  border-left-color: var(--ouro);
+}
+
+.gema-do-conjunto.nova {
+  color: var(--verde);
+  font-weight: 600;
+}
+
+.raridade-unique {
+  color: #e08a52;
+}
+
+.raridade-rare {
+  color: #f0e27a;
+}
+
+.raridade-magic {
+  color: #9aa7ff;
+}
+
+/* O que muda no próximo conjunto de itens. */
+/* Itens da fase no pé do balão: fora do `.rolo`, então o balão nunca corta. */
+.faixa-itens {
+  flex-shrink: 0;
+  margin-top: 0.38em;
+  padding-top: 0.32em;
+  border-top: 1px solid var(--risco);
+  font-size: 0.93em;
+}
+
+.faixa-itens.trocou {
+  padding: 0.3em 0.5em 0.35em;
+  background: rgba(127, 209, 139, 0.12);
+  border: 1px solid var(--verde);
+  border-radius: 6px;
+}
+
+.itens-depois {
+  font-size: 0.93em;
+  margin-top: 0.15em;
+}
+
+/* Guia da árvore: os próximos nós, com os mesmos números do desenho por cima do jogo. */
+
+.arvore.aberta .titulo {
+  color: var(--verde);
+}
+
+.nos-da-arvore {
+  margin: 0.1em 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.no-da-arvore {
+  display: flex;
+  gap: 0.4em;
+  align-items: baseline;
+}
+
+.no-da-arvore.feito {
+  opacity: 0.5;
+}
+
+.no-numero {
+  flex: 0 0 1.3em;
+  color: var(--verde);
+  font-weight: 600;
+  text-align: right;
+}
+
+.no-efeito {
+  opacity: 0.75;
+}
+
+/* A ressalva de uma opção: na linha de baixo do texto da marca. */
+.ressalva {
+  display: block;
+}
+
+.no-a-tirar,
+.aviso-da-arvore {
+  color: #f0c674;
+}
+
+/* O jogo está noutro filtro de itens: o aviso e a caixa de não avisar mais. */
+.aviso-do-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  margin: 0.4em 0;
+}
+
+.aviso-do-filtro .marca {
+  font-size: 1em;
+}
+
+.aviso-do-filtro .marca input:disabled {
+  cursor: default;
+}
+
+/* ◀ Próximo conjunto: Level 68 ▶: o conjunto de gemas que vem, inteiro, no fim do balão. */
+.conjunto-que-vem {
+  padding: 0.3em 0.5em 0.4em;
+  background: rgba(143, 184, 255, 0.08);
+  border: 1px solid var(--azul);
+  border-radius: 6px;
+}
+
+.conjunto-que-vem.fora-do-proximo {
+  border-style: dashed;
+}
+
+.conjunto-que-vem .linha-do-seletor .titulo {
+  color: var(--azul);
+}
+
+.conjunto-que-vem .etapa-da-arvore {
+  border: 1px solid transparent;
+}
+
+/* ◀ Árvore até X (3/7) ▶: andar entre as etapas da árvore do PoB. */
+.linha-do-seletor {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.seta-da-arvore {
+  flex: 0 0 auto;
+  width: 1.7em;
+  padding: 0.05em 0;
+  line-height: 1.2;
+}
+
+.etapa-da-arvore {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.05em 0.4em;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+}
+
+.etapa-da-arvore:disabled,
+.seta-da-arvore:disabled {
+  opacity: 1;
+}
+
+.seta-da-arvore:disabled {
+  color: var(--fraco);
+}
+
+.seletor-da-arvore.aberta .titulo {
+  color: var(--verde);
+}
+
+.link-da-arvore {
+  padding: 0;
+  color: var(--ouro);
+  background: transparent;
+  border: none;
+  text-decoration: underline;
+}
+
+.lista-da-arvore {
+  margin: 0.2em 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-da-arvore button {
+  display: block;
+  width: 100%;
+  margin-top: 0.12em;
+  text-align: left;
+}
+
+/* ---------- Layout da zona ---------- */
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5em, 1fr));
+  gap: 0.3em;
+  margin-top: 0.28em;
+}
+
+.grade.grande {
+  grid-template-columns: repeat(auto-fill, minmax(11em, 1fr));
+}
+
+.quadro {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  padding: 0;
+  background: #000000;
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.quadro img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.etiqueta {
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+  min-width: 1.2em;
+  padding: 0 0.3em;
+  color: var(--ouro);
+  font-size: 0.85em;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: none;
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+}
+
+button.quadro:hover {
+  border-color: var(--ouro);
+}
+
+/* ---------- Modo de edição ---------- */
+
+.bloco {
+  border: 1px solid var(--risco);
+  border-radius: 6px;
+}
+
+.bloco + .bloco {
+  margin-top: 0.3em;
+}
+
+.bloco-titulo {
+  display: block;
+  width: 100%;
+  padding: 0.28em 0.55em;
+  color: var(--ouro);
+  font-weight: 600;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  border: 0;
+  border-radius: 5px;
+}
+
+.bloco-corpo {
+  padding: 0.45em 0.55em 0.55em;
+}
+
+.bloco-corpo > * + * {
+  margin-top: 0.4em;
+}
+
+.subtitulo {
+  padding-top: 0.25em;
+  color: var(--ouro);
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.campo,
+.linha-de-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3em 0.4em;
+}
+
+.campo .rotulo {
+  min-width: 7.5em;
+  color: var(--fraco);
+  font-size: 0.92em;
+}
+
+.campo select {
+  flex: 1;
+  min-width: 8em;
+}
+
+/* Tempo de cada ato na corrida, o recorde e as mortes. */
+.tempos {
+  border-collapse: collapse;
+  margin-left: 7.8em;
+  font-size: 0.88em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tempos th {
+  color: var(--fraco);
+  font-weight: normal;
+  text-align: right;
+}
+
+.tempos th,
+.tempos td {
+  padding: 0 0.45em;
+  text-align: right;
+}
+
+.tempos tr.atual td:first-child {
+  color: var(--ouro);
+}
+
+/* Amostra do fundo do balão por cima de um "jogo" listrado, pra ver a transparência. */
+.amostra-fundo {
+  padding: 0.1em 0.55em;
+  border: 1px solid var(--borda);
+  border-radius: 5px;
+  background:
+    linear-gradient(var(--cor), var(--cor)),
+    repeating-linear-gradient(45deg, #4f6b3d 0 0.4em, #8d6535 0.4em 0.8em);
+  color: var(--texto);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.valor {
+  min-width: 2.6em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.marca {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45em;
+  font-size: 0.95em;
+  cursor: pointer;
+}
+
+.marca input {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0.14em 0 0;
+  accent-color: var(--ouro);
+}
+
+.teclas li {
+  font-size: 0.93em;
+}
+
+.teclas li + li {
+  margin-top: 0.2em;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 3.4em;
+  margin-right: 0.35em;
+  padding: 0 0.4em;
+  font: inherit;
+  font-size: 0.9em;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+}
+
+.build-atual > * + *,
+.escolher > * + * {
+  margin-top: 0.2em;
+}
+
+/* "Aplicar filtro da build", embaixo da importação. */
+.filtro-da-build {
+  margin-top: 0.6em;
+  padding-top: 0.5em;
+  border-top: 1px solid var(--borda);
+}
+
+.filtro-da-build > * + *,
+.filtro-da-build .certo > * + * {
+  margin-top: 0.3em;
+}
+
+/* O passo a passo da primeira vez: a build e depois o filtro. */
+.passo-a-passo > * + * {
+  margin-top: 0.35em;
+}
+
+.boas-vindas {
+  margin-bottom: 0.5em;
+}
+
+.numero-do-passo {
+  color: var(--ouro);
+  font-size: 0.85em;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.passo-a-passo.pronto .numero-do-passo {
+  color: var(--verde);
+}
+
+.lista-de-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  max-height: 12em;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda) transparent;
+}
+
+.opcao-de-filtro {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  padding: 0.2em 0.4em;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.opcao-de-filtro:hover {
+  border-color: var(--borda);
+}
+
+.opcao-de-filtro.escolhida {
+  border-color: var(--ouro);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.campo input.nome-do-filtro {
+  flex: 1;
+  min-width: 10em;
+}
+
+.notas {
+  max-height: 22em;
+  margin: 0;
+  padding: 0.4em 0.5em;
+  font: inherit;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 5px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda) transparent;
+}
+
+.arvore-link > * + * {
+  margin-top: 0.15em;
+}
+
+.legenda {
+  display: block;
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+/* ---------- Botões e campos ---------- */
+
+button,
+select,
+input[type="text"],
+textarea {
+  font: inherit;
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--borda);
+  border-radius: 5px;
+}
+
+button {
+  padding: 0.15em 0.6em;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.principal {
+  color: #1a1408;
+  font-weight: 600;
+  text-shadow: none;
+  background: var(--ouro);
+  border-color: var(--ouro);
+}
+
+button.principal:hover:not(:disabled) {
+  background: #f0cf85;
+}
+
+button.perigo {
+  color: #ffffff;
+  background: rgba(200, 60, 45, 0.55);
+  border-color: var(--vermelho);
+}
+
+select {
+  padding: 0.15em 0.3em;
+}
+
+select option {
+  color: var(--texto);
+  background: #1c1916;
+}
+
+input[type="text"],
+textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 0.25em 0.45em;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+textarea {
+  min-height: 4.2em;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 0.88em;
+  resize: vertical;
+}
+
+::placeholder {
+  color: var(--fraco);
+  opacity: 0.85;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ouro);
+  outline-offset: 1px;
+}
+
+/* ---------- Formas do balão (expandido, detalhado, resumido, bolinha) e arrastar com Alt ---------- */
+
+.situacao.barra {
+  position: relative;
+  /* Lugar pros botões do canto: pegador, até três da forma e a engrenagem. */
+  padding-right: 7.7em;
+}
+
+.botoes-da-forma {
+  position: absolute;
+  top: -0.1em;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  opacity: 0.45;
+}
+
+.painel.alt .botoes-da-forma {
+  opacity: 1;
+}
+
+.botoes-da-forma button {
+  width: 1.45em;
+  height: 1.45em;
+  padding: 0;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.botoes-da-forma .pegador {
+  color: var(--fraco);
+  letter-spacing: -0.1em;
+}
+
+/* A engrenagem abre as opções (o modo de edição). */
+.botoes-da-forma .engrenagem {
+  margin-left: 0.25em;
+  font-weight: 400;
+  font-size: 1.05em;
+}
+
+/* Com Alt segurado o balão aceita clique: mostra que dá pra arrastar pela linha de cima. */
+.painel.alt {
+  outline: 1px dashed var(--ouro);
+  outline-offset: -1px;
+}
+
+.painel.alt .barra {
+  cursor: grab;
+}
+
+/* O resumido e o expandido crescem com o conteúdo (a janela acompanha a altura medida). */
+.painel.resumido,
+.painel.expandido {
+  max-height: none;
+}
+
+/* ---------- Blocos do balão no jogo: cada um fecha, abre e troca de lugar ---------- */
+
+/* O cabeçalho do bloco: ▾/▸ e o nome, um risco até a borda e as setas ▲ ▼ (só com Alt). */
+.cabeca-do-bloco {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+  font-size: 0.74em;
+  line-height: 1.3;
+  color: var(--fraco);
+}
+
+.cabeca-do-bloco button {
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  line-height: inherit;
+}
+
+.cabeca-do-bloco button:hover:not(:disabled) {
+  color: var(--ouro);
+  background: none;
+}
+
+.nome-do-bloco {
+  flex-shrink: 0;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.seta-do-bloco {
+  display: inline-block;
+  width: 1.2em;
+  font-size: 1.1em;
+}
+
+/* Fechado: o que tem dentro, numa linha só. */
+.resumo-do-bloco {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.1em;
+  color: var(--texto);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.75;
+}
+
+.risco-do-bloco {
+  flex: 1 1 1em;
+  min-width: 0.6em;
+  border-top: 1px solid var(--risco);
+}
+
+.setas-do-bloco {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.3em;
+  visibility: hidden;
+}
+
+.painel.alt .setas-do-bloco {
+  visibility: visible;
+}
+
+.setas-do-bloco button {
+  width: 1.9em;
+  font-size: 1.05em;
+  text-align: center;
+}
+
+/* O conjunto ou os itens acabaram de trocar: o cabeçalho fica verde, mesmo com o bloco fechado. */
+.bloco-do-balao.novo > .cabeca-do-bloco {
+  color: var(--verde);
+}
+
+.corpo-do-bloco {
+  margin-top: 0.15em;
+}
+
+.corpo-do-bloco > * + * {
+  margin-top: 0.38em;
+}
+
+/* Dentro do bloco o cabeçalho já separa: as seções perdem o risco de cima (menos a caixa verde do "trocou"). */
+.corpo-do-bloco > .secao:not(.trocou) {
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Fechado, o bloco fica colado no de cima. */
+.rolo > .bloco-do-balao.fechado {
+  margin-top: 0.12em;
+}
+
+/* Bloco cujo conteúdo não tinha nada pra mostrar não aparece nem o cabeçalho. */
+.bloco-do-balao:has(> .corpo-do-bloco:empty) {
+  display: none;
+}
+
+/* ---------- Balão expandido: links em soquetes e fotos dos itens, embaixo do guia ---------- */
+
+.grade-de-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5em), 1fr));
+  gap: 0.4em;
+  margin-top: 0.3em;
+}
+
+.cartao-link-gemas {
+  min-width: 0;
+  padding: 0.3em 0.45em 0.4em;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--risco);
+  border-radius: 6px;
+}
+
+.cartao-link-gemas.principal {
+  border-color: var(--ouro);
+  box-shadow: 0 0 0.4em rgba(227, 190, 110, 0.22);
+}
+
+.cabeca-do-link {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.cabeca-do-link .fraco {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.corpo-do-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
+  margin-top: 0.3em;
+}
+
+.nomes-do-link {
+  min-width: 0;
+  margin: 0;
+  padding-left: 1.35em;
+  font-size: 0.9em;
+  line-height: 1.25;
+}
+
+.nomes-do-link .ativa {
+  font-weight: 600;
+}
+
+.nomes-do-link .nova,
+.gemas-soltas .nova {
+  color: var(--verde);
+}
+
+.titulo-de-grupo {
+  grid-column: 1 / -1;
+  margin-top: 0.1em;
+  border-bottom: 1px solid var(--risco);
+  color: var(--fraco);
+  font-size: 0.88em;
+}
+
+.gemas-soltas {
+  margin-top: 0.3em;
+}
+
+/* O desenho dos soquetes: as posições vêm de `nucleo/soquetes.ts`, em `em`, pelo Jogo.tsx. */
+.soquetes {
+  position: relative;
+  flex: none;
+}
+
+.soquete {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1em;
+  height: 2.1em;
+  border: 2px solid #d8d8d8;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #2c2520, #0d0b0a 72%);
+  box-shadow:
+    inset 0 0 0.3em rgba(0, 0, 0, 0.9),
+    0 0 0.15em rgba(0, 0, 0, 0.8);
+}
+
+.soquete-r {
+  border-color: #c9483a;
+}
+
+.soquete-g {
+  border-color: #4fa85c;
+}
+
+.soquete-b {
+  border-color: #4f78c9;
+}
+
+.soquete.nova {
+  box-shadow:
+    inset 0 0 0.3em rgba(0, 0, 0, 0.9),
+    0 0 0.5em var(--verde);
+}
+
+.soquete .icone-gema {
+  width: 1.6em;
+  height: 1.6em;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.soquete .cor {
+  width: 0.9em;
+  height: 0.9em;
+  margin: 0;
+}
+
+.ligacao-soquete {
+  position: absolute;
+  background: linear-gradient(#d9c49a, #8f7a55);
+  border-radius: 0.2em;
+  box-shadow: 0 0 0.15em rgba(0, 0, 0, 0.9);
+}
+
+.ligacao-soquete.deitada {
+  width: 2.85em;
+  height: 0.42em;
+  transform: translateY(-50%);
+}
+
+.ligacao-soquete.em-pe {
+  width: 0.42em;
+  height: 2.85em;
+  transform: translateX(-50%);
+}
+
+/* Fotos dos itens: a pequena no meio do texto, a grande nos quadros do expandido. */
+.foto-item {
+  display: inline-block;
+  width: 1.45em;
+  height: 1.45em;
+  margin: -0.2em 0.22em -0.2em 0;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.foto-item.grande {
+  display: block;
+  width: 3.1em;
+  height: 3.1em;
+  margin: 0.15em auto;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+}
+
+.foto-item.vazia {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.itens-expandido.trocou {
+  padding: 0.3em 0.5em 0.35em;
+  background: rgba(127, 209, 139, 0.12);
+  border: 1px solid var(--verde);
+  border-radius: 6px;
+}
+
+.itens-expandido.trocou .titulo {
+  color: var(--verde);
+}
+
+.grade-de-itens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.8em, 1fr));
+  gap: 0.35em;
+  margin-top: 0.25em;
+}
+
+.quadro-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 0.2em 0.2em 0.25em;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--risco);
+  border-radius: 5px;
+  text-align: center;
+}
+
+.quadro-item.borda-unique {
+  border-color: rgba(224, 138, 82, 0.7);
+}
+
+.quadro-item.borda-rare {
+  border-color: rgba(240, 226, 122, 0.5);
+}
+
+.quadro-item.borda-magic {
+  border-color: rgba(154, 167, 255, 0.5);
+}
+
+.quadro-item-espaco {
+  color: var(--fraco);
+  font-size: 0.72em;
+  line-height: 1.1;
+}
+
+.quadro-item-nome {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.78em;
+  line-height: 1.15;
+  overflow-wrap: normal;
+  word-break: break-word;
+}
+
+.cartao-gema.curto {
+  padding: 0.25em 0.5em;
+}
+
+.cartao-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.3em;
+}
+
+.cartao-gema.curto .recompensa {
+  color: var(--verde);
+}
+
+.cartao-gema.curto .compra {
+  color: var(--azul);
+}
+
+.bolinha-janela {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+button.bolinha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--ouro);
+  border-radius: 50%;
+  background: rgba(14, 12, 11, 0.9);
+  color: var(--ouro);
+  font-size: 13px;
+  line-height: 1.05;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+button.bolinha:hover:not(:disabled) {
+  background: rgba(40, 32, 20, 0.95);
+}
+
+.bolinha-ato {
+  font-weight: 700;
+}
+
+/* ---------- Botões de busca da loja ----------
+   Numa janelinha à parte, logo abaixo do campo de busca do Baú ou do vendedor (Alt + clique põe o
+   regex lá). A janela fica do tamanho da linha: medidas em px, como a bolinha. */
+
+.janela-da-busca {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+button.botao-de-busca {
+  flex: none;
+  padding: 2px 9px;
+  border: 1px solid rgba(190, 140, 255, 0.75);
+  border-radius: 999px;
+  color: #e6d4ff;
+  background: rgba(60, 34, 98, 0.92);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Com Alt segurado os botões aceitam clique: acendem. */
+.janela-da-busca.alt button.botao-de-busca {
+  border-color: rgba(214, 180, 255, 1);
+  background: rgba(104, 60, 168, 0.96);
+}
+
+button.botao-de-busca:hover {
+  background: rgba(140, 85, 215, 0.96);
+}
+
+.aviso-da-busca {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(14, 12, 11, 0.86);
+  color: var(--verde);
+}
+
+.aviso-da-busca.erro {
+  color: var(--vermelho);
+}
+
+/* ---------- Ascendência e panteão (roxo, com a árvore de passivas aberta) ---------- */
+
+.quadro-da-ascendencia {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  margin: 0.25em 0 0.15em;
+  padding: 0.3em 0.45em;
+  border: 1px solid rgba(190, 140, 255, 0.55);
+  border-radius: 6px;
+  background: rgba(120, 70, 190, 0.12);
+  line-height: 1.3;
+}
+
+.rotulo-da-ascendencia {
+  font-size: 0.8em;
+  color: #cdb2f5;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lab-da-ascendencia,
+.panteao-da-build {
+  font-size: 0.92em;
+  opacity: 0.75;
+}
+
+.lab-da-ascendencia.agora,
+.panteao-da-build {
+  opacity: 1;
+}
+
+.lab-da-ascendencia.agora .nome-do-lab {
+  color: #e6d4ff;
+}
+
+.nome-do-lab {
+  color: var(--fraco);
+  font-weight: 600;
+}
+
+.no-pequeno {
+  color: #bfa6e6;
+}
+
+.no-notavel {
+  color: #e6d4ff;
+  font-weight: 700;
+}
+
+.quadro-da-ascendencia .separador {
+  color: var(--fraco);
+}
+
+.bolinha-passo {
+  font-size: 10px;
+  color: var(--texto);
+}
+
+button.escolhido {
+  color: #1a1408;
+  background: var(--ouro);
+  border-color: var(--ouro);
+}

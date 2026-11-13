@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissões das janelas do overlay (o balão e os botões de busca)",
+  "windows": ["principal", "busca"],
+  "permissions": ["core:default", "core:window:allow-start-dragging"]
+}

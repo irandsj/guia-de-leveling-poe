@@ -1,0 +1,17 @@
+CRÉDITOS E LICENÇAS - Guia de Leveling {versao}
+===============================================
+
+Path of Exile e a arte do jogo são da Grinding Gear Games. Este guia não é ligado à GGG.
+
+- Rota da campanha e dados de gemas: exile-leveling, de HeartofPhos
+  https://github.com/HeartofPhos/exile-leveling (licença MIT, abaixo)
+- Imagens de layout das zonas: Exile-UI, de Lailloken
+  https://github.com/Lailloken/Exile-UI (licença MIT, abaixo)
+- Dados da árvore de passivas: Grinding Gear Games
+  https://github.com/grindinggear/skilltree-export
+- Ícones das gemas e fotos dos itens: arte da Grinding Gear Games, via poedb.tw
+- Contas da árvore conferidas com o Path of Building Community (MIT)
+  https://github.com/PathOfBuildingCommunity/PathOfBuilding
+
+O programa também usa bibliotecas de código aberto (Tauri, React e outras), cada uma
+com a sua licença.

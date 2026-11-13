@@ -1,0 +1,9 @@
+[package]
+name = "leitor-log"
+version = "0.1.0"
+description = "Lê o Client.txt do Path of Exile e devolve eventos de zona, nível e morte"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

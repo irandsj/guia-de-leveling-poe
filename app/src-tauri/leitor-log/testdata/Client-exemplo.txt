@@ -1,0 +1,32 @@
+2026/11/10 20:00:01 ***** LOG FILE OPENING *****
+2026/11/10 20:00:01 1000001 b5a3f6d2 [INFO Client 4321] [ENGINE] Init
+2026/11/10 20:00:05 1000500 890d9d3b [INFO Client 4321] Connected to sao.login.pathofexile.com in 32ms.
+2026/11/10 20:00:30 1025000 ca3a6b7d [INFO Client 4321] Connecting to instance server at 203.0.113.10:6112
+2026/11/10 20:00:30 1025400 ca3a6c41 [DEBUG Client 4321] Connect time to instance server was 31ms
+2026/11/10 20:00:31 1026000 1186a8a3 [DEBUG Client 4321] Generating level 1 area "1_1_1" with seed 2890112233
+2026/11/10 20:00:32 1027100 cffb065b [INFO Client 4321] : You have entered The Twilight Strand.
+2026/11/10 20:01:40 1095000 cffb065b [INFO Client 4321] : HeroiTeste (Marauder) is now level 2
+2026/11/10 20:02:10 1125000 ca3a6b7d [INFO Client 4321] Connecting to instance server at 203.0.113.11:6112
+2026/11/10 20:02:11 1126000 1186a8a3 [DEBUG Client 4321] Generating level 1 area "1_1_town" with seed 1
+2026/11/10 20:02:12 1127000 cffb065b [INFO Client 4321] : You have entered Lioneye's Watch.
+2026/11/10 20:02:20 1135000 cffb065b [INFO Client 4321] Nessa: Hello, exile.
+2026/11/10 20:02:25 1140000 cffb065b [INFO Client 4321] #FulanoDeTal: Generating level 99 area "2_10_1" with seed 5
+2026/11/10 20:02:26 1141000 cffb065b [INFO Client 4321] #FulanoDeTal: : HeroiTeste (Marauder) is now level 99
+2026/11/10 20:02:27 1142000 cffb065b [INFO Client 4321] @From Beltrano: : HeroiTeste has been slain.
+2026/11/10 20:03:00 1175000 1186a8a3 [DEBUG Client 4321] Generating level 2 area "1_1_2" with seed 3371089214
+2026/11/10 20:03:01 1176000 cffb065b [INFO Client 4321] : You have entered The Coast.
+2026/11/10 20:03:50 1225000 cffb065b [INFO Client 4321] : HeroiTeste (Marauder) is now level 3
+2026/11/10 20:04:05 1240000 cffb065b [INFO Client 4321] : OutroJogador (Witch) is now level 4
+2026/11/10 20:04:30 1265000 cffb065b [INFO Client 4321] : AFK mode is now ON. Autoreply "This player is AFK."
+2026/11/10 20:04:40 1275000 cffb065b [INFO Client 4321] : AFK mode is now OFF.
+2026/11/10 20:05:10 1305000 cffb065b [INFO Client 4321] : HeroiTeste has been slain.
+2026/11/10 20:05:15 1310000 1186a8a3 [DEBUG Client 4321] Generating level 1 area "1_1_town" with seed 1
+2026/11/10 20:05:16 1311000 cffb065b [INFO Client 4321] : You have entered Lioneye's Watch.
+2026/11/10 20:05:40 1335000 1186a8a3 [DEBUG Client 4321] Generating level 2 area "1_1_2" with seed 3371089214
+2026/11/10 20:05:41 1336000 cffb065b [INFO Client 4321] : You have entered The Coast.
+2026/11/10 20:06:30 1385000 cffb065b [INFO Client 4321] : HeroiTeste (Marauder) is now level 4
+2026/11/10 20:07:00 1415000 1186a8a3 [DEBUG Client 4321] Generating level 3 area "1_1_2a" with seed 912345678
+2026/11/10 20:07:01 1416000 cffb065b [INFO Client 4321] : You have entered The Tidal Island.
+2026/11/10 20:08:00 1475000 1186a8a3 [DEBUG Client 4321] Generating level 4 area "1_1_3" with seed 44556677
+2026/11/10 20:08:01 1476000 cffb065b [INFO Client 4321] : You have entered The Mud Flats.
+2026/11/10 20:09:10 1545000 cffb065b [INFO Client 4321] : HeroiTeste (Marauder) is now level 5

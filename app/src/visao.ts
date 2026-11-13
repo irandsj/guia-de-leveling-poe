@@ -1,8 +1,8 @@
 // Ponte da leitura de tela: abre o ícone de cada gema procurada e manda os pontos dele ao programa.
 // (Quem decide quais gemas procurar é `nucleo/alvos`. Quem olha a tela é o lado Rust, `visao.rs`.)
 
-import { backend, type AlvoDaTela } from "./backend";
-import type { AlvoDeGema } from "./nucleo/alvos";
+import { backend, type AlvoDaTela, type GemaDaBuildParaTela } from "./backend";
+import { enderecoDoIcone, type AlvoDeGema } from "./nucleo/alvos";
 
 /** Lado dos ícones de gema, em pontos. */
 const LADO = 78;
@@ -49,4 +49,24 @@ export async function mandarAlvos(alvos: AlvoDeGema[]): Promise<void> {
   // Chegou um pedido mais novo enquanto os ícones abriam: este não vale mais.
   if (meu !== pedido) return;
   await backend.definirAlvos(prontos);
+}
+
+let pedidoDaBuild = 0;
+
+/** No máximo quantas gemas da build vão ao programa (o mesmo limite do lado Rust). */
+const MAXIMO_DE_GEMAS_DA_BUILD = 80;
+
+/**
+ * Diz ao programa todas as gemas da rota: com o inventário aberto na cidade, ele confere a grade com
+ * elas e avisa das que estão lá.
+ */
+export async function mandarGemasDaBuild(gemIds: string[]): Promise<void> {
+  const meu = ++pedidoDaBuild;
+  const prontas: GemaDaBuildParaTela[] = [];
+  for (const id of gemIds.slice(0, MAXIMO_DE_GEMAS_DA_BUILD)) {
+    const rgba = await pontosDoIcone(enderecoDoIcone(id));
+    if (rgba) prontas.push({ id, lado: LADO, rgba });
+  }
+  if (meu !== pedidoDaBuild) return;
+  await backend.definirGemasDaBuild(prontas);
 }

@@ -51,6 +51,8 @@ export interface Sessao {
   timer: EstadoTimer;
   /** Gemas que o jogador marcou como compradas/pegas ("vendedor:<gem_id>", "quest:<gem_id>"). */
   marcadas: string[];
+  /** Marcas que o jogador tirou na mão: a gema delas não é mais marcada sozinha pelo inventário. */
+  desmarcadas: string[];
   /** Hora em que o jogador chegou na zona atual. `null` = não sei (o guia abriu com ele lá). */
   chegou_em: number | null;
   /** Nível dos monstros da zona atual. `null` = cidade, esconderijo ou não sei. */
@@ -72,16 +74,28 @@ export function novaSessao(): Sessao {
     morreu_em: null,
     timer: novoTimer(),
     marcadas: [],
+    desmarcadas: [],
     chegou_em: null,
     nivel_da_zona: null,
     mortes_por_ato: {},
   };
 }
 
-/** Marca ou desmarca uma gema como comprada/pega. */
+/**
+ * Marca ou desmarca uma gema como comprada/pega, na mão. A desmarcada fica lembrada (a leitura do
+ * inventário não marca mais ela sozinha); marcar de novo na mão esquece isso.
+ */
 export function alternarMarca(s: Sessao, chave: string): Sessao {
-  const marcadas = s.marcadas.includes(chave) ? s.marcadas.filter((m) => m !== chave) : [...s.marcadas, chave];
-  return { ...s, marcadas };
+  if (s.marcadas.includes(chave)) {
+    const desmarcadas = s.desmarcadas.includes(chave) ? s.desmarcadas : [...s.desmarcadas, chave];
+    return { ...s, marcadas: s.marcadas.filter((m) => m !== chave), desmarcadas };
+  }
+  return { ...s, marcadas: [...s.marcadas, chave], desmarcadas: s.desmarcadas.filter((m) => m !== chave) };
+}
+
+/** Marca a gema como comprada/pega (a leitura de tela viu ela no inventário). Já marcada: fica igual. */
+export function marcar(s: Sessao, chave: string): Sessao {
+  return s.marcadas.includes(chave) ? s : { ...s, marcadas: [...s.marcadas, chave] };
 }
 
 const MAXIMO_DE_MARCAS = 300;
@@ -395,9 +409,8 @@ export function retomarProgresso(valor: unknown, hashDoPlano: string, rota: Rota
     aguardando_nome: false,
     morreu_em: null,
     timer: timer !== null ? aoCarregarTimer(timer, salvoEm) : novoTimer(),
-    marcadas: Array.isArray(bruta.marcadas)
-      ? [...new Set(bruta.marcadas.map(texto).filter((m): m is string => m !== null))].slice(0, MAXIMO_DE_MARCAS)
-      : [],
+    marcadas: listaDeMarcas(bruta.marcadas),
+    desmarcadas: listaDeMarcas(bruta.desmarcadas),
     // A hora da chegada não vale depois de o guia ficar fechado.
     chegou_em: null,
     nivel_da_zona:
@@ -406,6 +419,12 @@ export function retomarProgresso(valor: unknown, hashDoPlano: string, rota: Rota
         : null,
     mortes_por_ato: contagemPorAto(bruta.mortes_por_ato),
   };
+}
+
+/** Lista de marcas que veio do disco: só textos, sem repetir. */
+function listaDeMarcas(valor: unknown): string[] {
+  if (!Array.isArray(valor)) return [];
+  return [...new Set(valor.map(texto).filter((m): m is string => m !== null))].slice(0, MAXIMO_DE_MARCAS);
 }
 
 /** Contagem por ato que veio do disco: só chaves de ato e inteiros que fazem sentido. */

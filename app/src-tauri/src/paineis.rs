@@ -95,6 +95,24 @@ const MODELO: [&str; LINHAS] = [
     "131314 0c1316 12181b ------ 0d1213 151615 141615 141616 151615 141615 151716 151717 161919 171b1a 181d1c 1b1f1d 1d211f 1f2322 212523 222725 232827 252a29 1f2b2c 222d2e 272f2e 26302f 2a322f 2b3231 2d3432 2f3534 2e3533 2f3635 303533 2d3433 2c3332 283230 252f2d 242d2c 232b2c 212a29 202727 192325 1d282a ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ 141514 090f12 ------ ------ ------ ------",
 ];
 
+/// Cor média de cada célula do cabeçalho do inventário (a moldura de cima, com o título e as abas
+/// Inventory e Cosmetics), em RRGGBB, no canto de cima, à direita, da área de jogo. Medido em 12 prints
+/// de 1920x1080 de 7 vídeos, que deram de 0,997 a 0,999 entre si; sem o inventário, nada passou de
+/// 0,41. `------` fica fora da conta: a primeira coluna (já é o jogo), as marcas I/II das armas e
+/// as letras do título e das abas (o jogo pode estar em outro idioma).
+const MODELO_DO_INVENTARIO: [&str; LINHAS] = [
+    "------ 110f0d 100d0b 100e0b 100e0b 110f0c 11100d 11100e 131311 131310 141311 141411 161613 161614 161715 161614 161815 161714 151613 151411 171511 1d1a16 171411 151411 161612 141310 13110e 19130f 1b140d 241b12 19110c 16100c 2a2013 2e2418 14100b 15130f 151512 161714 161713 161713 161714 151714 161814 171815 161815 171916 171916 161714 141612 151613 151613 141512 131210 12120f 11110e 110f0c 110f0c 110f0c 110f0c 100e0b 100e0b 16110e",
+    "------ 0a0f0d 060c0a 060c0a 070d0b 090f0e 0a110f 0b1412 0f1816 0f1917 0e1716 101a18 121c1a 131e1c 192422 192524 192624 1c2723 343429 544630 5f4f37 6a573e 6d5a3d 4d3d26 23251d 131917 181713 4b3928 342215 75603d 503d29 4c3925 79613e 664d2a 3c2d1f 3b2c1d 191a15 182220 242923 3b3627 453c2b 3e3627 353228 282c24 18221f 1c2927 1c2928 1a2725 14201e 121d1b 121c1b 0f1918 0c1514 0b1312 0a1210 080f0d 090f0d 080e0c 080e0c 060c0a 060b09 10100e",
+    "------ 090e0c 080e0c 070d0b 070d0b 080e0c 0b1110 0d1513 0f1715 101817 111918 0f1716 121a18 151e1c 1a2322 1b2421 36362a 675539 81633c 887048 332413 170f08 392b1a 735633 4b3924 2f291e 3c2c1b 65482c 695032 412d1d 5b4936 918368 5a4733 59402b 775f3c 8d6f44 3d3221 2e281d 453624 58452f 4b3a26 564129 7e643e 6a5030 53432c 3a3427 1d231e 151f1d 161f1d 0f1716 0e1514 0c1312 0b1010 0a0f0e 0a0f0e 070c0b 060b09 070b0a 070c0a 060b09 060908 100f0e",
+    "------ 090a09 0a0a0a 090909 090909 0c0c0c 0f0e0f 101010 121212 111210 151613 131411 161614 2b2822 483d2d 745e3f 8f7248 ad9561 665031 171009 130e09 19140e 1b140f 4b3927 6b5135 6f5635 7e5c33 886b41 483020 513429 816f56 65543e a88b61 3d251c 644c34 917347 735632 3f2e1b 55422b 160f08 120f0b 100d09 231b11 6c583a 977e4f 96784f 6f5735 4f3f2b 352e23 1c1b16 100f0d 0e0d0c 0e0c0a 0b0a09 090909 090909 080908 070808 080808 080808 070807 0f0d0b",
+    "------ 0d0f0e 1c2120 181d1c 242928 2d3331 343b39 3d4442 30322e 453626 574229 5a452b 8a734d 8a6f44 967f53 8f7c4f 372d1b 1b1309 2f2114 1f1d18 2d302e 424038 443822 534025 664a24 785d35 5c4323 624b2b 301d11 351e15 432c20 5c4331 4e3321 26120c 443021 664d2d 644a26 5b4420 372711 2d2210 241d10 1d201d 1d1f1c 241b12 302617 3e2f1f 837350 a78f60 91784c 877046 624e33 5a472e 403220 1e1b16 1a1d1d 232726 1e2321 1d211f 1e201d 242826 131414 0e0c0a",
+    "------ 0c0f0e 121817 202424 1a1e1e 191e1d 191e1d 1b2120 ------ ------ ------ ------ ------ ------ ------ ------ ------ 322a1d 553e26 1d1f1c 323530 625230 705c32 9a7e49 bc9e64 ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ 907743 7d6635 715c2e 56451f 3d3729 272f2d 2d281e 4f3c26 1f170d ------ ------ ------ ------ ------ ------ ------ ------ 161815 242726 202323 342e26 644b37 39281b 070706 0e0c0a",
+    "------ 0b0d0c 0f1312 1e2322 151919 1c2121 151b1b 242b27 ------ ------ ------ ------ ------ ------ ------ ------ ------ 131615 2e271c 272e29 504c38 5f4e2b 736135 957b46 b5975b ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ 8d733f 7d6434 776030 5f4e24 655839 2f3633 252621 282017 1b1a12 ------ ------ ------ ------ ------ ------ ------ ------ 33321d 202121 191b1b 302016 422315 442a18 070706 0e0c0a",
+    "------ 0a0b0a 0d100f 1a1d1c 0d0f0f 0c0e0e 131615 282c26 ------ ------ ------ ------ ------ ------ ------ ------ ------ 1d1f1e 1a1c1b 292d2c 3c3a30 5f5132 5e512d 6a592f 857041 ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ 7f6b3a 715d2f 625025 544520 594f35 222322 121313 101110 262517 ------ ------ ------ ------ ------ ------ ------ ------ 282512 181814 141616 13100b 2c150b 1f160c 070706 0e0b0a",
+    "------ 171512 161310 0d0906 0a0704 0d0a08 181612 28251f 2e2b24 312e26 312e26 333128 35342c 33322a 37352d 343229 39362f 2b2924 1d1a16 1b1714 1b1713 231d15 231d14 403526 3c2d1e 2a2218 1a150e 1e1911 312418 342115 2b1f14 2f2219 39291a 332518 231b12 19150e 17130d 261f16 3d3425 352d1d 2b2617 211c14 191512 191512 1e1b16 232016 231e13 221d13 1d180e 1b150b 1c180d 1c180e 1b170d 1e1a13 19150e 16130d 090704 080604 0a0705 110f0c 141210 0e0b0a",
+    "------ 26211d 241e19 140c08 17110c 201b16 1f1a15 2c2621 2a2620 2d2a22 ------ ------ ------ ------ 3c3932 3b3831 39372f 35332c 302f29 2d2b24 2e2b23 2c2922 2a2923 2a2a25 262621 22211b 292620 26231c 26231d 201d17 25221c 211f19 211f18 26231d 221e19 24211c 211e19 1c1a16 262520 24221d 22201b 1f1e19 24231e 2c2924 26241e 24221c 25231c 211e17 272319 ------ ------ ------ 24221b 211e19 201e19 171510 18140f 14100c 0b0703 14110c 1d1a16 100c0a",
+];
+
 type Cor = [f64; 3];
 type Tabela = [[Option<Cor>; COLUNAS]; LINHAS];
 type TabelaDaCompra = [[Option<Cor>; COLUNAS_DA_COMPRA]; LINHAS_DA_COMPRA];
@@ -116,6 +134,12 @@ fn ler_tabela<const L: usize, const C: usize>(texto: [&str; L]) -> [[Option<Cor>
 fn modelo() -> &'static Tabela {
     static LIDO: OnceLock<Tabela> = OnceLock::new();
     LIDO.get_or_init(|| ler_tabela(MODELO))
+}
+
+/// O modelo do cabeçalho do inventário, lido uma vez só.
+fn modelo_do_inventario() -> &'static Tabela {
+    static LIDO: OnceLock<Tabela> = OnceLock::new();
+    LIDO.get_or_init(|| ler_tabela(MODELO_DO_INVENTARIO))
 }
 
 /// O modelo da janela de compra, lido uma vez só.
@@ -186,11 +210,27 @@ fn correlacao(a: &[f64], b: &[f64]) -> f64 {
 /// que tem esta `altura`. As células sob `tapada` (o balão, quando ele aparece nas fotos) ficam
 /// fora da conta.
 pub fn notas(foto: &Foto, altura: usize, tapada: Option<Retangulo>) -> [f64; 3] {
+    notas_com(modelo(), foto, altura, tapada)
+}
+
+/// O quanto cada pedaço do cabeçalho do inventário parece com o modelo. `foto` é o canto de cima, à
+/// direita, da área de jogo (que tem esta `altura`), do tamanho de `tamanho_da_foto`, e começa em
+/// `esquerda_do_inventario`. `tapada` é contada a partir do canto da foto.
+pub fn notas_do_inventario(foto: &Foto, altura: usize, tapada: Option<Retangulo>) -> [f64; 3] {
+    notas_com(modelo_do_inventario(), foto, altura, tapada)
+}
+
+/// Onde começa a foto do cabeçalho do inventário, em pontos a partir da esquerda da área de jogo
+/// (o inventário fica preso na direita). Nada se a tela é estreita demais.
+pub fn esquerda_do_inventario(largura_da_area: usize, altura: usize) -> Option<usize> {
+    largura_da_area.checked_sub(tamanho_da_foto(altura).0)
+}
+
+fn notas_com(modelo: &Tabela, foto: &Foto, altura: usize, tapada: Option<Retangulo>) -> [f64; 3] {
     let (largura, alto) = tamanho_da_foto(altura);
     if largura == 0 || foto.largura < largura || foto.altura < alto || foto.rgb.len() < foto.largura * foto.altura * 3 {
         return [0.0; 3];
     }
-    let modelo = modelo();
     let mut saida = [0.0; 3];
     for (nota, &(de, ate)) in saida.iter_mut().zip(&PEDACOS) {
         let (mut nossos, mut deles) = (Vec::new(), Vec::new());
@@ -684,8 +724,8 @@ mod sistema {
     use windows_sys::Win32::UI::WindowsAndMessaging::GetWindowRect;
 
     use super::{
-        cobre, cobre_o_painel, faixa_da_compra, juntar, ler, ler_compra, lugar_da_busca, nota_da_compra, notas,
-        tamanho_da_foto, Leitura, PainelDoJogo, Retangulo, Vigia,
+        cobre, cobre_o_painel, esquerda_do_inventario, faixa_da_compra, juntar, ler, ler_compra, lugar_da_busca,
+        nota_da_compra, notas, notas_do_inventario, tamanho_da_foto, Leitura, PainelDoJogo, Retangulo, Vigia,
     };
     use crate::casar::Foto;
     use crate::estado::Estado;
@@ -725,6 +765,8 @@ mod sistema {
         let mut foto = Foto { largura: 0, altura: 0, rgb: Vec::new() };
         let mut bruto: Vec<u8> = Vec::new();
         let mut vigia = Vigia::default();
+        // O inventário, na direita: a visão só confere as gemas da mochila com ele aberto.
+        let mut inventario = Vigia::default();
         let mut por_cima = false;
         // Onde a janela de compra foi vista (fica `None` com o painel da esquerda).
         let mut compra: Option<Retangulo> = None;
@@ -745,6 +787,7 @@ mod sistema {
             // Baú ou o vendedor aberto. A opção só decide se o balão vira bolinha.
             if !estado.jogo_aberto.load(Ordering::SeqCst) {
                 vigia = Vigia::default();
+                inventario = Vigia::default();
                 por_cima = false;
                 compra = None;
                 perto_da_busca = None;
@@ -791,6 +834,19 @@ mod sistema {
                     }
                     if let Some(leitura) = leitura {
                         vigia.anotar(leitura);
+                    }
+                    // O cabeçalho do inventário, no canto de cima, à direita (foto do mesmo tamanho).
+                    if let Some(esquerda) = esquerda_do_inventario(area.largura, area.altura) {
+                        let canto = (area.canto.0 + esquerda as i32, area.canto.1);
+                        if visao::copiar(canto, largura, altura, &mut foto, &mut bruto) {
+                            let tapada = tapada.map(|t| Retangulo {
+                                esquerda: t.esquerda - esquerda as i64,
+                                direita: t.direita - esquerda as i64,
+                                ..t
+                            });
+                            inventario.anotar(ler(notas_do_inventario(&foto, area.altura, tapada)));
+                            visao::anotar_inventario(inventario.aberto);
+                        }
                     }
                     if !vigia.aberto {
                         compra = None;

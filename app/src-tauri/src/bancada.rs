@@ -17,8 +17,8 @@
 
 use crate::casar::{fator_pro_lado, melhor_lugar, Foto, FotoGrossa, Icone, Lugar, LIMIAR};
 use crate::paineis::{
-    faixa_da_compra, juntar, ler, ler_compra, nota_da_compra, nota_da_recompensa, notas, tamanho_da_foto, Leitura,
-    LARGURA_DO_PAINEL,
+    esquerda_do_inventario, faixa_da_compra, juntar, ler, ler_compra, nota_da_compra, nota_da_recompensa, notas,
+    notas_do_inventario, tamanho_da_foto, Leitura, LARGURA_DO_PAINEL,
 };
 use crate::visao::{largura_olhada, loja_de, recortar, Loja, FRACAO_NA_LOJA, FRACAO_NA_RECOMPENSA};
 use std::path::{Path, PathBuf};
@@ -379,6 +379,58 @@ fn bancada_paineis() {
     for linha in linhas {
         print!("{linha}");
     }
+}
+
+/// O cabeçalho do inventário, preso na direita, em todos os formatos: as fotos de recompensa e de
+/// loja do PC (1080) têm o inventário aberto; as outras (árvore, zona nova, mapa, e as de 2160, que
+/// são do console, com outra interface) não.
+#[test]
+fn bancada_inventario() {
+    let Some(pasta) = pasta() else { return };
+    let quadros = quadros(&pasta, &["recompensa", "loja", "arvore", "zona_nova", "mapa_tab"]);
+    println!("\n== INVENTÁRIO: {} fotos", quadros.len());
+    let linhas: Vec<(String, usize)> = std::thread::scope(|e| {
+        let fios: Vec<_> = quadros
+            .iter()
+            .map(|q| {
+                e.spawn(move || {
+                    let aberto = (q.tipo == "recompensa" || q.tipo == "loja") && q.foto.altura == 1080;
+                    let mut erradas = Vec::new();
+                    let mut menor_ou_maior = if aberto { 1.0f64 } else { 0.0f64 };
+                    for (nome, largura, altura) in FORMATOS {
+                        let (tela, _, _) = no_formato(&q.foto, largura, altura, Preso::Livre);
+                        let (l, a) = tamanho_da_foto(altura);
+                        let Some(esquerda) = esquerda_do_inventario(tela.largura, altura) else {
+                            erradas.push(format!("{nome}: não cabe"));
+                            continue;
+                        };
+                        let notas = notas_do_inventario(&recorte(&tela, esquerda, 0, l, a), altura, None);
+                        let maior = notas.iter().cloned().fold(0.0, f64::max);
+                        menor_ou_maior = if aberto { menor_ou_maior.min(maior) } else { menor_ou_maior.max(maior) };
+                        let leitura = ler(notas);
+                        if (leitura == Leitura::Aberto) != aberto {
+                            erradas.push(format!("{nome}: {leitura:?} {notas:.2?}"));
+                        }
+                    }
+                    let texto = format!(
+                        "   {:22} {} ({} {menor_ou_maior:.3}){}\n",
+                        q.nome,
+                        if aberto { "aberto " } else { "fechado" },
+                        if aberto { "menor nota" } else { "maior nota" },
+                        if erradas.is_empty() { String::new() } else { format!("\n      ERRADO: {}", erradas.join("\n      ERRADO: ")) }
+                    );
+                    (texto, erradas.len())
+                })
+            })
+            .collect();
+        fios.into_iter().map(|f| f.join().unwrap()).collect()
+    });
+    let mut erros = 0;
+    for (linha, n) in linhas {
+        print!("{linha}");
+        erros += n;
+    }
+    assert_eq!(erros, 0, "o inventário foi lido errado");
 }
 
 pub(crate) fn arvore_do_app() -> arvore_visao::Arvore {
@@ -809,4 +861,200 @@ fn bancada_loja_na_janela() {
     for linha in linhas {
         print!("{linha}");
     }
+}
+
+/// Vigia da mochila nas fotos de verdade: cada casa ocupada da grade do inventário é comparada com
+/// todas as gemas, no tamanho original. A gema achada numa casa tem que ser achada na mesma casa em
+/// todos os formatos, e item que não é gema não pode passar do limiar da mochila. A vigia, com todas
+/// as gemas da pasta como gemas da build, tem que contar as mesmas gemas em cada formato (nem a mais,
+/// nem a menos).
+/// Mostra quanto custa a olhada na grade: a primeira (todas as casas ocupadas conferidas) e as seguintes.
+#[test]
+fn bancada_mochila() {
+    use crate::mochila::{notas_das_casas, procuradas, Grade, Vigia};
+    use std::collections::BTreeMap;
+    let Some(pasta) = pasta() else { return };
+    let gemas: Vec<(String, Icone)> =
+        icones(&pasta).into_iter().filter(|(nome, _)| nome.contains("Gem")).collect();
+    let quadros = quadros(&pasta, &["recompensa", "loja"]);
+    let grade_de = |tela: &Foto| {
+        let grade = Grade::da_tela(tela.largura, tela.altura).expect("grade cabe");
+        (recorte(tela, grade.x, grade.y, grade.largura, grade.altura), grade)
+    };
+
+    // 1. No tamanho original, contra todas as gemas (as fotos em paralelo).
+    println!("\n== MOCHILA: casas ocupadas contra {} gemas, no tamanho original", gemas.len());
+    let respostas: Vec<Vec<((usize, usize), String, f32, f32)>> = std::thread::scope(|escopo| {
+        let tarefas: Vec<_> = quadros
+            .iter()
+            .map(|q| {
+                let gemas = &gemas;
+                escopo.spawn(move || {
+                    let (foto, grade) = grade_de(&q.foto);
+                    let todas = procuradas(gemas.iter().map(|(n, i)| (n.as_str(), i)), grade.lado());
+                    notas_das_casas(&foto, &grade, &todas)
+                        .into_iter()
+                        .map(|(casa, notas)| (casa, notas[0].1.clone(), notas[0].0, notas[1].0))
+                        .collect()
+                })
+            })
+            .collect();
+        tarefas.into_iter().map(|t| t.join().unwrap()).collect()
+    });
+    let mut achadas: Vec<Vec<((usize, usize), String)>> = Vec::new();
+    for (q, casas) in quadros.iter().zip(&respostas) {
+        let limiar = Grade::da_tela(q.foto.largura, q.foto.altura).expect("grade cabe").limiar();
+        let gemas_aqui: Vec<_> = casas.iter().filter(|c| c.2 >= limiar).collect();
+        let fora = casas.iter().filter(|c| c.2 < limiar).max_by(|a, b| a.2.total_cmp(&b.2));
+        println!(
+            "   {:20} {:2} ocupadas, {} gema(s); maior nota das outras {}",
+            q.nome,
+            casas.len(),
+            gemas_aqui.len(),
+            fora.map_or(String::new(), |(casa, nome, nota, _)| format!("{nota:.2} (casa {casa:?}, {nome})"))
+        );
+        for (casa, nome, nota, segunda) in &gemas_aqui {
+            println!("      casa {casa:?}: {nome} {nota:.2} (segunda {segunda:.2})");
+        }
+        achadas.push(gemas_aqui.iter().map(|c| (c.0, c.1.clone())).collect());
+    }
+
+    // 2. Nos outros formatos, contra as gemas achadas e mais umas que não estão lá.
+    println!("\n== MOCHILA nos formatos (as gemas achadas no original, mais 12 que não estão lá)");
+    let mut erros = 0;
+    for (nome, largura, altura) in FORMATOS {
+        let (mut iguais, mut casas_com_gema, mut demais, mut contas_erradas) = (0, 0, 0, 0);
+        let mut limiar = 0f32;
+        let mut todas_no_tamanho: Option<(usize, Vec<crate::mochila::Procurada>)> = None;
+        // Com todas as gemas: a menor nota de uma gema certa na casa dela, e a maior nota de uma gema
+        // numa casa sem gema (nas fotos do PC, as únicas em que o inventário é visto aberto).
+        let mut certa_menor = (f32::MAX, String::new());
+        let mut outra_maior = (f32::MIN, String::new());
+        for (q, esperadas) in quadros.iter().zip(&achadas) {
+            let (tela, _, _) = no_formato(&q.foto, largura, altura, Preso::Livre);
+            let (foto, grade) = grade_de(&tela);
+            let nomes: Vec<&String> = esperadas.iter().map(|e| &e.1).collect();
+            let alvos: Vec<(&str, &Icone)> = gemas
+                .iter()
+                .filter(|(n, _)| nomes.contains(&n))
+                .chain(gemas.iter().step_by(37).take(12))
+                .map(|(n, i)| (n.as_str(), i))
+                .collect();
+            let lista = procuradas(alvos, grade.lado());
+
+            // A vigia, com todas as gemas da pasta como build: duas olhadas contam as gemas da lista.
+            if todas_no_tamanho.as_ref().map_or(true, |(lado, _)| *lado != grade.lado()) {
+                let todas = procuradas(gemas.iter().map(|(n, i)| (n.as_str(), i)), grade.lado());
+                todas_no_tamanho = Some((grade.lado(), todas));
+            }
+            let todas = &todas_no_tamanho.as_ref().unwrap().1;
+            // Como no app: todas as gemas da build valem (a de nota maior em cada casa).
+            let ids: Vec<&str> = todas.iter().map(|p| p.id.as_str()).collect();
+            let mut vigia = Vigia::nova();
+            let primeira = vigia.olhar(&foto, &grade, todas, &ids);
+            let contou: BTreeMap<String, usize> = vigia.olhar(&foto, &grade, todas, &ids).into_iter().collect();
+            let mut esperado: BTreeMap<String, usize> = BTreeMap::new();
+            for (_, gema) in esperadas {
+                *esperado.entry(gema.clone()).or_default() += 1;
+            }
+            limiar = grade.limiar();
+            let pc = q.foto.altura == 1080;
+            let errou = !primeira.is_empty() || contou != esperado;
+            let notas_de_todas = if pc || errou { notas_das_casas(&foto, &grade, todas) } else { Vec::new() };
+            if pc {
+                for (casa, notas) in &notas_de_todas {
+                    match esperadas.iter().find(|e| e.0 == *casa) {
+                        Some((_, gema)) => {
+                            let nota = notas.iter().find(|n| &n.1 == gema).map_or(-1.0, |n| n.0);
+                            if nota < certa_menor.0 {
+                                certa_menor = (nota, format!("{} {casa:?} {gema}", q.nome));
+                            }
+                        }
+                        None if notas[0].0 > outra_maior.0 => {
+                            outra_maior = (notas[0].0, format!("{} {casa:?} {}", q.nome, notas[0].1));
+                        }
+                        None => {}
+                    }
+                }
+            }
+            if errou {
+                println!("      {nome} {}: a vigia contou {contou:?} (esperado {esperado:?}, primeira olhada {primeira:?})", q.nome);
+                for (casa, notas) in &notas_de_todas {
+                    if notas[0].0 >= limiar && !esperadas.iter().any(|e| e.0 == *casa) {
+                        println!("         casa {casa:?}: {} {:.3} (segunda {} {:.3})", notas[0].1, notas[0].0, notas[1].1, notas[1].0);
+                    }
+                }
+                contas_erradas += 1;
+                erros += 1;
+            }
+            let notas = notas_das_casas(&foto, &grade, &lista);
+            let vistas: Vec<((usize, usize), String)> = notas
+                .iter()
+                .filter(|(_, notas)| notas[0].0 >= limiar)
+                .map(|(casa, notas)| (*casa, notas[0].1.clone()))
+                .collect();
+            casas_com_gema += esperadas.len();
+            for e in esperadas {
+                if vistas.contains(e) {
+                    iguais += 1;
+                } else {
+                    let nota = notas.iter().find(|(casa, _)| *casa == e.0).map_or(-1.0, |(_, n)| n[0].0);
+                    println!("      {nome} {}: faltou {e:?} (nota {nota:.2})", q.nome);
+                    erros += 1;
+                }
+            }
+            for v in &vistas {
+                if !esperadas.contains(v) {
+                    println!("      {nome} {}: sobrou {v:?}", q.nome);
+                    demais += 1;
+                    erros += 1;
+                }
+            }
+        }
+        println!("   {nome:18} {iguais}/{casas_com_gema} gemas no lugar, {demais} a mais, {contas_erradas} conta(s) da vigia errada(s)");
+        println!(
+            "   {:18} limiar {limiar:.3}; PC: certa menor {:.3} ({}), outra maior {:.3} ({})",
+            "", certa_menor.0, certa_menor.1, outra_maior.0, outra_maior.1
+        );
+    }
+
+    // 3. Quanto custa, com uma build do tamanho máximo que a interface manda (as gemas achadas nas
+    // fotos e mais umas): a primeira olhada (confere todas as ocupadas) e as seguintes.
+    let achada = |n: &String| achadas.iter().flatten().any(|(_, a)| a == n);
+    let mut da_build: Vec<&(String, Icone)> = gemas.iter().filter(|(n, _)| achada(n)).collect();
+    da_build.extend(gemas.iter().filter(|(n, _)| !achada(n)).step_by(5));
+    da_build.truncate(crate::visao::MAXIMO_DE_GEMAS_DA_BUILD);
+    println!("\n== MOCHILA: tempo de uma olhada na grade com {} gemas da build", da_build.len());
+    let lista_de_ids: Vec<&str> = da_build.iter().map(|(n, _)| n.as_str()).collect();
+    for (nome, largura, altura) in [FORMATOS[0], FORMATOS[3], FORMATOS[4], FORMATOS[5]] {
+        let (mut comeco, mut depois, mut pior) = (0f64, 0f64, 0f64);
+        let mut todas_no_tamanho: Option<(usize, Vec<crate::mochila::Procurada>)> = None;
+        for q in &quadros {
+            let (tela, _, _) = no_formato(&q.foto, largura, altura, Preso::Livre);
+            let (foto, grade) = grade_de(&tela);
+            if todas_no_tamanho.as_ref().map_or(true, |(lado, _)| *lado != grade.lado()) {
+                todas_no_tamanho = Some((grade.lado(), procuradas(da_build.iter().map(|(n, i)| (n.as_str(), i)), grade.lado())));
+            }
+            let todas = &todas_no_tamanho.as_ref().unwrap().1;
+            let mut vigia = Vigia::nova();
+            let inicio = Instant::now();
+            vigia.olhar(&foto, &grade, todas, &lista_de_ids);
+            let ms = inicio.elapsed().as_secs_f64() * 1000.0;
+            comeco += ms;
+            pior = pior.max(ms);
+            vigia.olhar(&foto, &grade, todas, &lista_de_ids);
+            let inicio = Instant::now();
+            for _ in 0..4 {
+                assert!(vigia.olhar(&foto, &grade, todas, &lista_de_ids).is_empty(), "foto parada não marca de novo");
+            }
+            depois += inicio.elapsed().as_secs_f64() * 1000.0 / 4.0;
+        }
+        let n = quadros.len() as f64;
+        println!(
+            "   {nome:18} primeira {:6.1} ms (pior {pior:6.1}), depois {:5.2} ms",
+            comeco / n,
+            depois / n
+        );
+    }
+    assert_eq!(erros, 0, "a mochila não viu a mesma coisa em todos os formatos");
 }

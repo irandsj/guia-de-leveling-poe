@@ -11,6 +11,7 @@ import {
   alternarMarca,
   guardarProgresso,
   irParaAto,
+  marcar,
   novaSessao,
   pausarOuRetomar,
   recomecar,
@@ -449,6 +450,36 @@ describe("progresso salvo", () => {
     expect(retomarProgresso(salvo, HASH, ROTA).marcadas).toEqual(["a"]);
     delete (salvo.sessao as { marcadas?: unknown }).marcadas;
     expect(retomarProgresso(salvo, HASH, ROTA).marcadas).toEqual([]);
+  });
+
+  it("a marca da mochila só marca: a gema já marcada continua marcada", () => {
+    const frostblink = "vendedor:Metadata/Items/Gems/Frostblink";
+    const antes = noHailrake();
+    const marcada = marcar(antes, frostblink);
+    expect(marcada.marcadas).toEqual([frostblink]);
+    expect(antes.marcadas).toEqual([]);
+    expect(marcar(marcada, frostblink)).toBe(marcada);
+    // Depois, o jogador ainda pode desmarcar na mão.
+    expect(alternarMarca(marcada, frostblink).marcadas).toEqual([]);
+  });
+
+  it("a gema desmarcada na mão fica lembrada até ser marcada de novo na mão, e volta do disco", () => {
+    const frostblink = "vendedor:Metadata/Items/Gems/Frostblink";
+    const marcada = marcar(noHailrake(), frostblink);
+    const desmarcada = alternarMarca(marcada, frostblink);
+    expect(desmarcada.marcadas).toEqual([]);
+    expect(desmarcada.desmarcadas).toEqual([frostblink]);
+    const salvo = JSON.parse(JSON.stringify(guardarProgresso(desmarcada, HASH, 20_000))) as {
+      sessao: { desmarcadas: unknown };
+    };
+    expect(retomarProgresso(salvo, HASH, ROTA).desmarcadas).toEqual([frostblink]);
+    salvo.sessao.desmarcadas = "lixo";
+    expect(retomarProgresso(salvo, HASH, ROTA).desmarcadas).toEqual([]);
+    const de_novo = alternarMarca(desmarcada, frostblink);
+    expect(de_novo.marcadas).toEqual([frostblink]);
+    expect(de_novo.desmarcadas).toEqual([]);
+    // Marcar sozinho não mexe nas desmarcadas (quem decide se marca é marcaDaMochila).
+    expect(marcar(desmarcada, frostblink).desmarcadas).toEqual([frostblink]);
   });
 
   it("progresso de outro plano ou de outra versão: começa do zero", () => {

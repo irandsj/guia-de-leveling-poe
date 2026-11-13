@@ -8,6 +8,7 @@ import {
   type Config,
   type EstadoJanela,
   type EventoLog,
+  type GemaNaMochila,
   type Inicial,
   type NomeDeDados,
   type PainelDoJogo,
@@ -53,6 +54,7 @@ import {
   aplicarTecla,
   guardarProgresso,
   irParaAto,
+  marcar,
   novaSessao,
   pausarOuRetomar,
   recomecar,
@@ -63,8 +65,8 @@ import {
 import { anotarAto, atosRecemConcluidos, lerRecordes, novosRecordes, textoDoAto, type Recordes } from "./nucleo/recordes";
 import { novoTimer } from "./nucleo/timer";
 import { passoEquivalente, posicaoNoAto } from "./nucleo/vista";
-import { alvosDaTela, chaveDosAlvos } from "./nucleo/alvos";
-import { mandarAlvos } from "./visao";
+import { alvosDaTela, chaveDosAlvos, gemasDaBuild, marcaDaMochila } from "./nucleo/alvos";
+import { mandarAlvos, mandarGemasDaBuild } from "./visao";
 import { Bolinha, BotoesDaForma, segurarPraArrastar, usarFormaDaJanela } from "./ui/Balao";
 import { buscasDaLoja } from "./nucleo/busca";
 import { temAscendencia } from "./nucleo/ascendencia";
@@ -311,6 +313,19 @@ export function App() {
     }
   }
 
+  /**
+   * A leitura de tela viu uma gema da build no inventário: marca sozinha a dela que falta neste ato
+   * (não a que o jogador desmarcou na mão, nem uma segunda marca pra mesma cópia).
+   */
+  function aoGemaNaMochila(gema: GemaNaMochila) {
+    const { marcadas, desmarcadas, passo } = sessaoRef.current;
+    const chave = marcaDaMochila(rotaRef.current, passo, marcadas, desmarcadas, gema);
+    if (!chave) return;
+    const nome = rotaRef.current?.passos.flatMap((p) => p.gemas).find((g) => g.gem_id === gema.gem_id)?.nome;
+    setSessao((s) => marcar(s, chave));
+    avisar(`Marquei ${nome ?? "a gema"}: está no inventário.`);
+  }
+
   /** O jogador abriu a bolinha com o painel do jogo ainda aberto: fica aberta até o painel fechar. */
   function dispensarBolinhaDoPainel() {
     painelDispensadoRef.current = true;
@@ -390,6 +405,7 @@ export function App() {
           tecla: aoTecla,
           arvore: setSituacaoDaArvore,
           painel: aoPainel,
+          gemaNaMochila: aoGemaNaMochila,
         });
         if (!vivo) {
           pararDeOuvir();
@@ -476,6 +492,14 @@ export function App() {
   useEffect(() => {
     void mandarAlvos(alvosRef.current).catch((erro: unknown) => console.error("Leitura de tela:", erro));
   }, [chaveAlvos]);
+  // E todas as gemas da rota, pra conferir o inventário (a gema vista vira marca em aoGemaNaMochila).
+  const daBuild = carregado && prefs.marcar_gemas ? gemasDaBuild(rota) : [];
+  const chaveDaBuild = daBuild.join("|");
+  useEffect(() => {
+    void mandarGemasDaBuild(chaveDaBuild ? chaveDaBuild.split("|") : []).catch((erro: unknown) =>
+      console.error("Leitura de tela:", erro),
+    );
+  }, [chaveDaBuild]);
 
   // Guia da árvore: o programa recebe a ordem dos nós da build e desenha por cima da árvore do jogo.
   // (Vale também com o painel escondido: só a preferência desliga.)

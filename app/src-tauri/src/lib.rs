@@ -26,6 +26,7 @@ mod fotos;
 mod janela;
 mod janela_da_busca;
 mod jogo;
+mod mochila;
 mod paineis;
 mod vigia;
 mod visao;
@@ -223,6 +224,12 @@ fn definir_alvos(alvos: Vec<visao::AlvoRecebido>) -> usize {
     visao::definir_alvos(alvos)
 }
 
+/// Todas as gemas da rota, pra conferir no inventário (a gema da lista não vira uma parecida).
+#[tauri::command]
+fn definir_gemas_da_build(gemas: Vec<visao::GemaRecebida>) -> usize {
+    visao::definir_gemas_da_build(gemas)
+}
+
 /// Posições dos nós da árvore de passivas (o painel manda uma vez por versão).
 #[tauri::command]
 fn definir_arvore(arvore: arvore::ArvoreRecebida) -> Result<usize, String> {
@@ -323,6 +330,7 @@ pub fn executar() {
             salvar_config,
             fechar,
             definir_alvos,
+            definir_gemas_da_build,
             gravador,
             definir_arvore,
             definir_guia_da_arvore,
@@ -351,8 +359,8 @@ pub fn executar() {
             arvore::iniciar(handle.clone());
             vigia::iniciar(handle.clone());
             paineis::iniciar(handle.clone());
-            alt::iniciar(handle);
-            visao::iniciar();
+            alt::iniciar(handle.clone());
+            visao::iniciar(handle);
             gravador::iniciar(pasta_das_gravacoes);
             Ok(())
         })

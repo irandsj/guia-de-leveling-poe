@@ -6,7 +6,7 @@ Overlay leve pra campanha do Path of Exile 1 (atos 1 a 10). Você cola o link de
 
 - Lê o `Client.txt` e a posição da janela do jogo.
 - Tira fotos da tela do jogo, só com o jogo na frente, pra três coisas. Cada uma tem a sua opção pra desligar:
-  - na cidade, achar o ícone das gemas da build e piscar uma moldura verde em volta (veja "Gema certa piscando na tela");
+  - na cidade, achar o ícone das gemas da build e piscar uma moldura verde em volta, e marcar sozinha a gema que está no inventário (veja "Gema certa piscando na tela");
   - em qualquer lugar, reconhecer a árvore de passivas quando você abre e desenhar por cima os próximos nós (veja "Guia da árvore de passivas");
   - em qualquer lugar, ver se o Mundo, o Baú ou o vendedor está aberto, pra o balão virar bolinha quando está por cima e pros botões de busca aparecerem (veja "Bolinha com o Mundo ou o Baú aberto" e "Busca da loja").
 - Essas fotos ficam só na memória do guia: não são gravadas nem enviadas a lugar nenhum. Só o gravador de estudo, que começa desligado, grava fotos no disco.
@@ -149,15 +149,31 @@ Com o personagem na cidade, o guia procura na tela as gemas que a build ainda va
 
 Como funciona:
 
-- Duas fotos por segundo da parte esquerda da janela do jogo, só com o jogo na frente e só na cidade. Fora da cidade não tira foto nenhuma.
+- Duas fotos por segundo da parte esquerda da janela do jogo, só com o jogo na frente e só na cidade. Com o inventário aberto, também da grade dele. Fora da cidade não tira foto nenhuma.
 - A moldura é uma janela do guia, vazada no meio. O clique passa por ela e nada é enviado ao jogo.
 - Liga e desliga no modo de edição: "Piscar na tela a gema certa".
 - Os ícones ficam em `public/gemas` (640 gemas). `node scripts/baixar-icones.mjs` baixa de novo.
 
+### Marca sozinha a gema que está no inventário
+
+- Na cidade, com o inventário aberto, o guia confere a grade dele com os ícones de todas as gemas da build. Ele reconhece o inventário aberto pelo cabeçalho, no canto direito da tela.
+- Toda gema da build que estiver lá vira marca: a dela que ainda falta na rota, do começo até o fim do ato atual. Com a loja aberta, vale primeiro a compra; com a recompensa aberta, a recompensa. O guia avisa: "Marquei Frostblink: está no inventário." A gema sai da lista e para de piscar.
+- Não importa como ela chegou: comprada, pega na recompensa, achada no chão ou trazida de antes. Se não marcou na hora, abrir o inventário (`I`) na cidade resolve.
+- Duas cópias da mesma gema só marcam duas vezes se a rota tiver duas (uma de recompensa e uma comprada, por exemplo). Uma gema já marcada não é marcada de novo.
+- A gema precisa aparecer em duas fotos seguidas, pra não contar a gema passando no cursor. Mudar a gema de casa não conta de novo.
+- A caixinha continua. Gema desmarcada na mão não é mais marcada sozinha; marcar de novo na mão desfaz isso.
+- O guia não lê o mouse, o teclado nem a memória do jogo. Só compara a foto da grade com os ícones.
+- Prova com prints (`bancada_mochila`): as 38 gemas dos prints de recompensa e loja, contra as 461 gemas do jogo, em 13 formatos de tela (de 1024x768 a 5120x1440, com 16:10, 21:9 e janela). Ficaram todas no lugar, sem gema a mais e sem conta errada.
+- A nota mínima depende do tamanho da casa: 0,75 em 720 e 0,70 de 1080 pra cima. Ícone pequeno tem menos detalhe, e em 720 um item chegou a 0,73. Nos prints, a gema certa mais fraca e o item mais parecido ficaram em 0,779 contra 0,730 (720), 0,759 contra 0,683 (1080) e 0,728 contra 0,648 (4K).
+- A build vai com no máximo 80 gemas. A primeira olhada confere toda casa ocupada e leva de 0,13 s (720) a 1,1 s (4K). Depois, só a casa que mudou é conferida, em menos de 1 ms.
+
 O que ainda falta:
 
 - Só foi conferido com um print da janela de recompensa. Na loja, o tamanho do ícone foi medido em prints reduzidos e ainda não foi testado no jogo.
-- O guia não sabe se você já comprou. A gema da loja pisca enquanto o passo dela não passar.
+- A marcação sozinha ainda não foi testada no jogo, só em prints.
+- Gema que vai direto do cursor pra um soquete do equipamento, sem passar pelo inventário, não é vista. Também não dá pra ver a gema que já está no equipamento: o `Client.txt` não conta isso. Marque na mão.
+- Uma gema que não é da build, mas tem o desenho parecido com uma que falta, pode ser marcada no lugar dela.
+- O inventário precisa estar no lugar de sempre, no canto direito da tela.
 - Uma gema procurada que esteja no seu inventário ou no baú também ganha moldura.
 - Se o guia estiver atrasado na rota, ele procura as gemas do passo errado. `F7` acerta o passo.
 - O consumo com a leitura de tela ligada ainda não foi medido.

@@ -91,6 +91,27 @@ export interface Ouvintes {
   painel?: (painel: PainelDoJogo) => void;
   /** As buscas da build mudaram (pra janelinha dos botões de busca). */
   buscas?: (buscas: Busca[]) => void;
+  /** Uma gema da build está no inventário (a interface decide se vira marca). */
+  gemaNaMochila?: (gema: GemaNaMochila) => void;
+}
+
+/**
+ * Gema da build que a leitura de tela viu no inventário aberto (evento "gema-na-mochila"). Chega
+ * quando o inventário passa a ter mais cópias dela do que antes, nesta visita à cidade.
+ */
+export interface GemaNaMochila {
+  gem_id: string;
+  /** A janela aberta na hora: loja ("vendedor") ou recompensa ("quest"). `null`: nenhuma. */
+  tipo: "quest" | "vendedor" | null;
+  /** Quantas cópias dela o inventário tem agora. */
+  quantas: number;
+}
+
+/** Uma gema da build, pra conferir no inventário: o ícone vai em pontos (RGBA, `lado` x `lado`). */
+export interface GemaDaBuildParaTela {
+  id: string;
+  lado: number;
+  rgba: number[];
 }
 
 /** Painel da esquerda do jogo (Mundo, Baú…), visto pela foto do cabeçalho (evento "painel-do-jogo"). */
@@ -224,6 +245,8 @@ export interface Backend {
   fechar(): Promise<void>;
   /** Gemas pra procurar na tela do jogo. Lista vazia desliga a leitura de tela. */
   definirAlvos(alvos: AlvoDaTela[]): Promise<number>;
+  /** Todas as gemas da rota, pra conferir no inventário. Devolve quantas valeram. */
+  definirGemasDaBuild(gemas: GemaDaBuildParaTela[]): Promise<number>;
   /** Liga ou desliga o gravador de estudo; sem argumento, só conta como está. */
   gravador(ligado?: boolean): Promise<SituacaoDoGravador>;
   /** Posições dos nós da árvore de passivas, uma vez por versão. Devolve quantos nós foram aceitos. */
@@ -256,6 +279,7 @@ const backendTauri: Backend = {
   salvarConfig: (config) => invoke<Config>("salvar_config", { config }),
   fechar: () => invoke<void>("fechar"),
   definirAlvos: (alvos) => invoke<number>("definir_alvos", { alvos }),
+  definirGemasDaBuild: (gemas) => invoke<number>("definir_gemas_da_build", { gemas }),
   gravador: (ligado) => invoke<SituacaoDoGravador>("gravador", { ligado: ligado ?? null }),
   definirArvore: (arvore) => invoke<number>("definir_arvore", { arvore }),
   definirGuiaDaArvore: (guia) => invoke<number>("definir_guia_da_arvore", { guia }),
@@ -268,6 +292,7 @@ const backendTauri: Backend = {
       listen<SituacaoDaArvore>("arvore", (e) => ouvintes.arvore?.(e.payload)),
       listen<PainelDoJogo>("painel-do-jogo", (e) => ouvintes.painel?.(e.payload)),
       listen<Busca[]>("buscas", (e) => ouvintes.buscas?.(e.payload)),
+      listen<GemaNaMochila>("gema-na-mochila", (e) => ouvintes.gemaNaMochila?.(e.payload)),
     ]);
     return () => parar.forEach((p) => p());
   },
@@ -311,6 +336,8 @@ export interface Simulador {
   arvore(situacao: Partial<SituacaoDaArvore>): void;
   /** Faz de conta que um painel da esquerda do jogo abriu ou fechou (`cobre`: por baixo do balão). */
   painel(aberto: boolean, cobre?: boolean): void;
+  /** Faz de conta que a leitura de tela viu a gema no inventário (`quantas` cópias, com a `tipo` aberta). */
+  gemaNaMochila(gem_id: string, tipo?: "quest" | "vendedor" | null, quantas?: number): void;
 }
 
 /** O que o programa diz da árvore antes de ver qualquer coisa. */
@@ -396,6 +423,8 @@ function criarBackendFalso(): Backend {
       const painel = { aberto: aberto && config.bolinha_com_painel, cobre: aberto && cobre && config.bolinha_com_painel };
       ouvintes.forEach((o) => o.painel?.(painel));
     },
+    gemaNaMochila: (gem_id, tipo = "vendedor", quantas = 1) =>
+      ouvintes.forEach((o) => o.gemaNaMochila?.({ gem_id, tipo, quantas })),
   };
   (window as unknown as { simular: Simulador }).simular = simulador;
 
@@ -481,6 +510,7 @@ function criarBackendFalso(): Backend {
     },
     fechar: async () => {},
     definirAlvos: async (alvos) => alvos.length,
+    definirGemasDaBuild: async (gemas) => gemas.length,
     gravador: async (ligado) => ({ ligado: ligado ?? false, fotos: 0, megas: 0, pasta: null }),
     definirArvore: async (arvore) => arvore.ids.length,
     definirGuiaDaArvore: async (guia) => {

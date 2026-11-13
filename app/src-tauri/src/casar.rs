@@ -307,6 +307,45 @@ fn melhor_na_vizinhanca(
     melhor
 }
 
+/// O ícone pronto pra conferir num lugar já sabido (uma casa do inventário), sem passada grossa:
+/// em cores, no tamanho esperado e um ponto maior e menor.
+pub(crate) struct MoldeFixo {
+    /// O do tamanho esperado primeiro.
+    moldes: Vec<Molde>,
+}
+
+impl MoldeFixo {
+    pub(crate) fn novo(icone: &Icone, lado: usize, lugar: Lugar) -> Option<MoldeFixo> {
+        let lado = lado.max(9);
+        let molde = |l: usize| Molde::novo(&icone.redimensionado(l), true, lugar);
+        let mut moldes = vec![molde(lado)?];
+        moldes.extend([lado - 1, lado + 1].into_iter().filter_map(molde));
+        Some(MoldeFixo { moldes })
+    }
+
+    /// A melhor nota do ícone com o canto até uns `raio` pontos de `canto` (passe ou não do limiar).
+    pub(crate) fn nota_em_volta(&self, foto: &Foto, canto: (usize, usize), raio: usize) -> f32 {
+        let principal = &self.moldes[0];
+        // 1. No tamanho esperado, de 2 em 2 pontos.
+        let Some(perto) = melhor_na_vizinhanca(foto, principal, canto, raio, 2) else {
+            return -1.0;
+        };
+        // 2. Ponto a ponto em volta do melhor, nos três tamanhos.
+        let mut melhor = perto.nota;
+        for molde in &self.moldes {
+            let diferenca = molde.lado as i32 - principal.lado as i32;
+            let perto_daqui = (
+                (perto.x as i32 - diferenca / 2).max(0) as usize,
+                (perto.y as i32 - diferenca / 2).max(0) as usize,
+            );
+            if let Some(a) = melhor_na_vizinhanca(foto, molde, perto_daqui, 1, 1) {
+                melhor = melhor.max(a.nota);
+            }
+        }
+        melhor
+    }
+}
+
 /// Confere se o ícone continua no lugar em que foi achado da última vez (barato).
 pub fn conferir(foto: &Foto, icone: &Icone, antes: Achado, lugar: Lugar) -> Option<Achado> {
     let molde = Molde::novo(&icone.redimensionado(antes.lado), true, lugar)?;

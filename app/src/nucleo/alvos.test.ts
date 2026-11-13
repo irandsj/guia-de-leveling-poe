@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { MAXIMO_DE_ALVOS, alvosDaTela, chaveDosAlvos, enderecoDoIcone } from "./alvos";
+import { MAXIMO_DE_ALVOS, alvosDaTela, chaveDosAlvos, enderecoDoIcone, gemasDaBuild, marcaDaMochila } from "./alvos";
 import { ARCANE_LINK } from "./dados-330";
 import { ROTA } from "./teste/rota-de-exemplo";
 import { chaveDaMarca, comprasQueFicaram, gemasDoAto } from "./vista";
@@ -65,5 +65,64 @@ describe("gemas que a leitura de tela procura", () => {
 
   it("a Arcane Link (gema nova da 3.30) também tem ícone, pra piscar na tela", () => {
     expect(existsSync(join(process.cwd(), "public", enderecoDoIcone(ARCANE_LINK)))).toBe(true);
+  });
+});
+
+describe("gema vista no inventário", () => {
+  const todas = ROTA.passos.flatMap((p, passo) => p.gemas.map((gema) => ({ gema, passo, ato: p.ato })));
+  // Uma gema que a rota pega como recompensa e compra também (ou a primeira que aparecer duas vezes).
+  const repetida = todas.find(
+    (a) => todas.filter((b) => b.gema.gem_id === a.gema.gem_id && b.gema.tipo !== a.gema.tipo).length > 0,
+  );
+
+  it("as gemas da build: todas as da rota, sem repetir", () => {
+    const ids = gemasDaBuild(ROTA);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(expect.arrayContaining(todas.map((a) => a.gema.gem_id)));
+    expect(gemasDaBuild(null)).toEqual([]);
+  });
+
+  it("vira a marca da gema na rota até o fim do ato atual, a do tipo da janela aberta primeiro", () => {
+    const { gema, passo } = todas[0];
+    const vista = { gem_id: gema.gem_id, tipo: gema.tipo, quantas: 1 };
+    expect(marcaDaMochila(ROTA, passo, [], [], vista)).toBe(chaveDaMarca(gema));
+    // De um passo do mesmo ato antes dela, também (ela está no ato).
+    expect(marcaDaMochila(ROTA, 0, [], [], vista)).toBe(chaveDaMarca(gema));
+    // Gema que não está na rota: nada.
+    expect(marcaDaMochila(ROTA, passo, [], [], { ...vista, gem_id: "Metadata/Items/Gems/NaoExiste" })).toBeNull();
+    expect(marcaDaMochila(null, 0, [], [], vista)).toBeNull();
+  });
+
+  it("gema de um ato que ainda não chegou não é marcada", () => {
+    const atoDoComeco = ROTA.passos[0].ato;
+    const depois = todas.find((a) => a.ato !== atoDoComeco && !todas.some((b) => b.ato === atoDoComeco && b.gema.gem_id === a.gema.gem_id));
+    expect(depois).toBeDefined();
+    const vista = { gem_id: depois!.gema.gem_id, tipo: null, quantas: 1 };
+    expect(marcaDaMochila(ROTA, 0, [], [], vista)).toBeNull();
+    expect(marcaDaMochila(ROTA, depois!.passo, [], [], vista)).toBe(chaveDaMarca(depois!.gema));
+  });
+
+  it("já marcada tantas vezes quantas cópias, ou desmarcada na mão: nada", () => {
+    const { gema, passo } = todas[0];
+    const chave = chaveDaMarca(gema);
+    const vista = { gem_id: gema.gem_id, tipo: null, quantas: 1 };
+    expect(marcaDaMochila(ROTA, passo, [chave], [], vista)).toBeNull();
+    expect(marcaDaMochila(ROTA, passo, [], [chave], vista)).toBeNull();
+  });
+
+  it("a mesma gema como recompensa e como compra: a segunda cópia marca a outra", () => {
+    expect(repetida).toBeDefined();
+    const { gema } = repetida!;
+    const outra = todas.find((b) => b.gema.gem_id === gema.gem_id && b.gema.tipo !== gema.tipo)!;
+    const passo = Math.max(repetida!.passo, outra.passo);
+    const vista = { gem_id: gema.gem_id, tipo: gema.tipo, quantas: 1 };
+    expect(marcaDaMochila(ROTA, passo, [], [], vista)).toBe(chaveDaMarca(gema));
+    // Com a janela da outra aberta, vale a outra.
+    expect(marcaDaMochila(ROTA, passo, [], [], { ...vista, tipo: outra.gema.tipo })).toBe(chaveDaMarca(outra.gema));
+    // Uma já marcada e uma cópia só: é a mesma gema, nada de novo.
+    expect(marcaDaMochila(ROTA, passo, [chaveDaMarca(gema)], [], vista)).toBeNull();
+    // A segunda cópia marca a outra.
+    expect(marcaDaMochila(ROTA, passo, [chaveDaMarca(gema)], [], { ...vista, quantas: 2 })).toBe(chaveDaMarca(outra.gema));
   });
 });

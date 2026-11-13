@@ -80,6 +80,42 @@ fn alvos_de_agora() -> Option<Arc<Vec<Alvo>>> {
     ALVOS.lock().unwrap().clone()
 }
 
+/// No máximo quantas gemas da build são conferidas no inventário.
+pub const MAXIMO_DE_GEMAS_DA_BUILD: usize = 80;
+
+/// Uma gema da build, como a interface manda (pra conferir no inventário).
+#[derive(Deserialize)]
+pub struct GemaRecebida {
+    pub id: String,
+    pub lado: usize,
+    pub rgba: Vec<u8>,
+}
+
+pub struct GemaDaBuild {
+    pub id: String,
+    pub icone: Icone,
+}
+
+/// Todas as gemas da rota: no inventário, uma gema da lista só vale se nenhuma outra gema da build
+/// tiver o desenho ainda mais parecido com o da casa.
+static GEMAS_DA_BUILD: Mutex<Option<Arc<Vec<GemaDaBuild>>>> = Mutex::new(None);
+
+/// Troca as gemas da build. Devolve quantas valeram.
+pub fn definir_gemas_da_build(recebidas: Vec<GemaRecebida>) -> usize {
+    let gemas: Vec<GemaDaBuild> = recebidas
+        .into_iter()
+        .take(MAXIMO_DE_GEMAS_DA_BUILD)
+        .filter_map(|r| Some(GemaDaBuild { id: r.id, icone: Icone::novo(r.lado, r.rgba)? }))
+        .collect();
+    let quantas = gemas.len();
+    *GEMAS_DA_BUILD.lock().unwrap() = (quantas > 0).then(|| Arc::new(gemas));
+    quantas
+}
+
+fn gemas_da_build() -> Option<Arc<Vec<GemaDaBuild>>> {
+    GEMAS_DA_BUILD.lock().unwrap().clone()
+}
+
 // ---------- Onde procurar: a janela de compra do vendedor ----------
 //
 // O laço dos painéis (`paineis`) já reconhece a janela de compra a cada 300 ms. A visão usa isso
@@ -101,6 +137,21 @@ static OUTRO_IDIOMA: AtomicBool = AtomicBool::new(false);
 /// O laço dos painéis conta o que viu da janela de compra (em pontos da tela).
 pub fn anotar_compra(janela: Option<[i32; 4]>) {
     *COMPRA.lock().unwrap() = Some((Instant::now(), janela));
+}
+
+/// O inventário como o laço dos painéis viu por último: quando, e se estava aberto.
+static INVENTARIO: Mutex<Option<(Instant, bool)>> = Mutex::new(None);
+/// Até quanto tempo vale o que o laço dos painéis disse do inventário.
+const INVENTARIO_VALE: Duration = Duration::from_secs(1);
+
+/// O laço dos painéis conta se o inventário está aberto.
+pub fn anotar_inventario(aberto: bool) {
+    *INVENTARIO.lock().unwrap() = Some((Instant::now(), aberto));
+}
+
+/// O inventário está aberto agora (pelo que o laço dos painéis viu há pouco)?
+fn inventario_aberto() -> bool {
+    INVENTARIO.lock().unwrap().is_some_and(|(quando, aberto)| aberto && quando.elapsed() <= INVENTARIO_VALE)
 }
 
 /// As opções do jogo dizem se ele está em outro idioma.
@@ -180,15 +231,27 @@ pub(crate) fn largura_olhada(largura: usize, altura: usize) -> usize {
     largura.min((largura as f32 - inventario).ceil().max(1.0) as usize)
 }
 
+/// Gema da build que está no inventário (evento "gema-na-mochila"): a interface decide se vira marca.
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct GemaNaMochila {
+    pub gem_id: String,
+    /// A janela aberta na hora: "vendedor" (loja) ou "quest" (recompensa); nenhuma, `None`.
+    pub tipo: Option<&'static str>,
+    /// Quantas cópias dela o inventário tem agora: a interface só marca se já não marcou tantas.
+    pub quantas: usize,
+}
+
 /// Liga a thread que olha a tela. Fica parada enquanto não houver gemas pra procurar.
-pub fn iniciar() {
+pub fn iniciar(app: tauri::AppHandle) {
     #[cfg(windows)]
     {
-        let resultado = std::thread::Builder::new().name("visao".into()).spawn(sistema::laco);
+        let resultado = std::thread::Builder::new().name("visao".into()).spawn(move || sistema::laco(app));
         if let Err(erro) = resultado {
             eprintln!("não consegui criar a thread da leitura de tela: {erro}");
         }
     }
+    #[cfg(not(windows))]
+    let _ = app;
 }
 
 #[cfg(windows)]
@@ -218,9 +281,15 @@ mod sistema {
         WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_POPUP,
     };
 
-    use super::{alvos_de_agora, largura_olhada, loja_agora, recortar, Alvo, Loja};
+    use tauri::{AppHandle, Emitter};
+
+    use super::{
+        alvos_de_agora, gemas_da_build, inventario_aberto, largura_olhada, loja_agora, recortar, Alvo, GemaDaBuild,
+        GemaNaMochila, Loja,
+    };
     use crate::casar::{conferir, fator_pro_lado, procurar, Achado, Foto, FotoGrossa};
     use crate::jogo;
+    use crate::mochila::{Gemas, Grade, Vigia};
 
     /// De quanto em quanto tempo a tela é fotografada.
     const ENTRE_OLHADAS: Duration = Duration::from_millis(500);
@@ -371,7 +440,9 @@ mod sistema {
     /// estar na tela e só onde podem estar. As da loja, pelo que se sabe da `loja` (com a compra
     /// aberta, só dentro dela). As da recompensa, só dentro da janela dela, quando ela é
     /// reconhecida; quando não, na foto inteira, uma olhada a cada `OLHADAS_SEM_A_JANELA`.
-    pub fn olhar(foto: &Foto, alvos: &[Alvo], vistos: &mut [Visto], olhadas: &mut Olhadas, loja: Loja) {
+    ///
+    /// Devolve se a janela de recompensa estava na foto, quando foi preciso olhar (`None`: não olhou).
+    pub fn olhar(foto: &Foto, alvos: &[Alvo], vistos: &mut [Visto], olhadas: &mut Olhadas, loja: Loja) -> Option<bool> {
         let mut a_procurar: Vec<usize> = Vec::new();
         for (i, alvo) in alvos.iter().enumerate() {
             if let Some(antes) = vistos[i].achado {
@@ -389,11 +460,8 @@ mod sistema {
             }
         }
         // A janela de recompensa só é procurada se falta achar alguma gema dela.
-        let recompensa = if a_procurar.iter().any(|&i| !alvos[i].na_loja) {
-            crate::paineis::nota_da_recompensa(foto).1
-        } else {
-            None
-        };
+        let olhou_a_recompensa = a_procurar.iter().any(|&i| !alvos[i].na_loja);
+        let recompensa = if olhou_a_recompensa { crate::paineis::nota_da_recompensa(foto).1 } else { None };
         let com_recompensa = recompensa.is_some() || olhadas.conta % OLHADAS_SEM_A_JANELA == 0;
         olhadas.conta = olhadas.conta.wrapping_add(1);
         if !com_recompensa {
@@ -429,6 +497,7 @@ mod sistema {
         for ((onde, gemas), pedaco) in grupos.into_iter().zip(olhadas.pedacos.iter_mut()) {
             procurar_em(foto, onde, pedaco, &gemas, alvos, vistos);
         }
+        olhou_a_recompensa.then_some(recompensa.is_some())
     }
 
     /// Procura estas gemas no pedaço `onde` da foto (ou na foto inteira), recortado em `pedaco`.
@@ -592,13 +661,94 @@ mod sistema {
         }
     }
 
-    pub fn laco() {
+    /// A vigia da mochila no laço: com o inventário aberto (quem vê é o laço dos painéis), a grade
+    /// dele é conferida com as gemas da build, e cada gema que passa a ter mais cópias lá vai pra
+    /// interface, que sabe se ela vira marca.
+    struct Mochila {
+        vigia: Vigia,
+        /// As gemas da build e as da lista, prontas pra grade no tamanho de agora.
+        gemas: Gemas,
+        /// Pra que lista, gemas da build e altura de tela elas foram feitas.
+        feitas_pra: Option<(Arc<Vec<Alvo>>, Option<Arc<Vec<GemaDaBuild>>>, usize)>,
+        foto: Foto,
+        bruto: Vec<u8>,
+    }
+
+    impl Mochila {
+        fn nova() -> Mochila {
+            Mochila {
+                vigia: Vigia::nova(),
+                gemas: Gemas::novas(0),
+                feitas_pra: None,
+                foto: Foto { largura: 0, altura: 0, rgb: Vec::new() },
+                bruto: Vec::new(),
+            }
+        }
+
+        /// Saiu da cidade: a próxima visita conta de novo o que está no inventário (a interface sabe
+        /// quantas já marcou). As gemas prontas e o que se viu nas casas ficam.
+        fn nova_visita(&mut self) {
+            self.vigia.nova_visita();
+        }
+
+        /// Uma olhada na grade, com o inventário aberto. `janela`: a de compra (`Some(true)`) ou a de
+        /// recompensa (`Some(false)`) está na tela agora.
+        fn olhar(&mut self, app: &AppHandle, area: AreaDoJogo, alvos: &Arc<Vec<Alvo>>, janela: Option<bool>) {
+            let Some(grade) = Grade::da_tela(area.largura, area.altura) else { return };
+            let da_build = gemas_da_build();
+            let mesma_build = |feitas: &Option<Arc<Vec<GemaDaBuild>>>| match (feitas, &da_build) {
+                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+                (None, None) => true,
+                _ => false,
+            };
+            let em_dia = self.feitas_pra.as_ref().is_some_and(|(lista, build, altura)| {
+                Arc::ptr_eq(lista, alvos) && mesma_build(build) && *altura == area.altura
+            });
+            if !em_dia {
+                let mesma_altura = self.feitas_pra.as_ref().is_some_and(|(_, _, altura)| *altura == area.altura);
+                let outra_build = !self.feitas_pra.as_ref().is_some_and(|(_, build, _)| mesma_build(build));
+                let refazer = outra_build || self.gemas.lado() != grade.lado();
+                if refazer {
+                    self.gemas = Gemas::novas(grade.lado());
+                }
+                // As gemas da lista também (se a interface não mandou as da build).
+                let antes = self.gemas.todas().len();
+                self.gemas.juntar(alvos.iter().map(|a| (a.id.as_str(), &a.icone)));
+                if let Some(build) = &da_build {
+                    self.gemas.juntar(build.iter().map(|g| (g.id.as_str(), &g.icone)));
+                }
+                // Outra altura de tela: as casas mudaram de lugar. Outras gemas: só conferir de novo.
+                if !mesma_altura {
+                    self.vigia.esquecer_casas();
+                } else if refazer || self.gemas.todas().len() != antes {
+                    self.vigia.trocar_procuradas();
+                }
+                self.feitas_pra = Some((alvos.clone(), da_build, area.altura));
+            }
+            let canto = (area.canto.0 + grade.x as i32, area.canto.1 + grade.y as i32);
+            if !copiar(canto, grade.largura, grade.altura, &mut self.foto, &mut self.bruto) {
+                return;
+            }
+            // Todas as gemas da build contam (a de nota maior em cada casa). A janela aberta diz à
+            // interface se a gema foi comprada ou pega na recompensa.
+            let lista: Vec<&str> = self.gemas.todas().iter().map(|g| g.id.as_str()).collect();
+            let tipo = janela.map(|na_loja| if na_loja { "vendedor" } else { "quest" });
+            for (id, quantas) in self.vigia.olhar(&self.foto, &grade, self.gemas.todas(), &lista) {
+                if let Err(erro) = app.emit("gema-na-mochila", GemaNaMochila { gem_id: id, tipo, quantas }) {
+                    eprintln!("não consegui avisar da gema na mochila: {erro}");
+                }
+            }
+        }
+    }
+
+    pub fn laco(app: AppHandle) {
         let mut molduras = Molduras::novas(true);
         let mut foto = Foto { largura: 0, altura: 0, rgb: Vec::new() };
         let mut bruto: Vec<u8> = Vec::new();
         let mut vistos: Vec<Visto> = Vec::new();
         let mut lista: Option<Arc<Vec<Alvo>>> = None;
         let mut olhadas = Olhadas::novas();
+        let mut mochila = Mochila::nova();
         let inicio = Instant::now();
         let mut ultima_olhada = inicio;
 
@@ -621,6 +771,10 @@ mod sistema {
                 molduras.esconder_todas();
                 olhadas.recomecar();
                 lista = agora;
+                if lista.is_none() {
+                    // Saiu da cidade (ou não falta nada): a próxima visita começa do zero.
+                    mochila.nova_visita();
+                }
             }
             let Some(alvos) = &lista else {
                 // Sem nada pra procurar: solta a memória da foto.
@@ -634,21 +788,41 @@ mod sistema {
 
             let na_frente = jogo::janela_na_frente();
             let no_jogo = na_frente != 0 && jogo::classe_da_janela(na_frente) == jogo::CLASSE_DO_JOGO;
-            let canto = if no_jogo { fotografar(na_frente, &mut foto, &mut bruto, false) } else { None };
-            let Some((canto_x, canto_y)) = canto else {
+            let area = if no_jogo { medir(na_frente) } else { None };
+            let fotografou = area.is_some_and(|a| {
+                copiar(a.canto, largura_olhada(a.largura, a.altura), a.altura, &mut foto, &mut bruto)
+            });
+            let Some(area) = area.filter(|_| fotografou) else {
                 vistos.iter_mut().for_each(|v| *v = Visto::default());
                 molduras.esconder_todas();
                 olhadas.recomecar();
                 continue;
             };
+            let (canto_x, canto_y) = area.canto;
 
             let loja = loja_agora((canto_x, canto_y), foto.largura, foto.altura);
-            olhar(&foto, alvos, &mut vistos, &mut olhadas, loja);
+            let olhou_a_recompensa = olhar(&foto, alvos, &mut vistos, &mut olhadas, loja);
             for (i, visto) in vistos.iter().enumerate() {
                 match visto.achado {
                     Some(a) => molduras.mostrar(i, canto_x + a.x as i32, canto_y + a.y as i32, a.lado as i32),
                     None => molduras.esconder(i),
                 }
+            }
+
+            // Com o inventário aberto, a vigia da mochila confere a grade. A janela na tela (a compra
+            // reconhecida, uma moldura numa gema, ou a recompensa reconhecida) diz se a gema foi
+            // comprada ou pega na recompensa.
+            if inventario_aberto() {
+                let janela = if matches!(loja, Loja::Aberta(_)) {
+                    Some(true)
+                } else if let Some(i) = vistos.iter().position(|v| v.achado.is_some()) {
+                    Some(alvos[i].na_loja)
+                } else if olhou_a_recompensa.unwrap_or_else(|| crate::paineis::nota_da_recompensa(&foto).1.is_some()) {
+                    Some(false)
+                } else {
+                    None
+                };
+                mochila.olhar(&app, area, alvos, janela);
             }
         }
     }
